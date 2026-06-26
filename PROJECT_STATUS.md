@@ -38,6 +38,9 @@
   `https://ai-assistent-2-delta.vercel.app/api/vapi/end-of-call`
 - Vercel production env configured with Supabase keys and temporary
   `VAPI_WEBHOOK_ALLOW_UNAUTHENTICATED=true`.
+- App calendar MVP added:
+  `/appointments` now reads live Supabase `appointments` and shows a weekly calendar
+  with time slots, appointment cards, week navigation, and an upcoming list.
 - Local verification: lint OK, build OK, npm audit 0 vulnerabilities.
 
 ## Building Next
