@@ -27,6 +27,20 @@ export type DashboardLead = {
   summary: string;
 };
 
+export type CalendarAppointment = {
+  id: string;
+  title: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  status: string;
+  customerName: string;
+  customerPhone: string;
+  serviceType: string;
+  location: string;
+  notes: string;
+  hasGoogleEvent: boolean;
+};
+
 export async function getRecentCalls(limit = 10): Promise<DashboardCall[]> {
   const supabase = getSupabaseServiceClient();
   const { data, error } = await supabase
@@ -80,6 +94,37 @@ export async function getRecentLeads(limit = 10): Promise<DashboardLead[]> {
     urgency: lead.urgency ?? "normal",
     status: lead.status,
     summary: lead.ai_summary ?? "Няма резюме.",
+  }));
+}
+
+export async function getCalendarAppointments(start: Date, end: Date): Promise<CalendarAppointment[]> {
+  const supabase = getSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("appointments")
+    .select(
+      "id, title, starts_at, ends_at, status, customer_name, customer_phone, service_type, location, notes, google_calendar_event_id"
+    )
+    .or(`and(starts_at.gte.${start.toISOString()},starts_at.lt.${end.toISOString()}),starts_at.is.null`)
+    .order("starts_at", { ascending: true, nullsFirst: false })
+    .limit(80);
+
+  if (error) {
+    console.error("Could not load appointments", error);
+    return [];
+  }
+
+  return data.map((appointment) => ({
+    id: appointment.id,
+    title: appointment.title,
+    startsAt: appointment.starts_at,
+    endsAt: appointment.ends_at,
+    status: appointment.status,
+    customerName: appointment.customer_name ?? "Без име",
+    customerPhone: appointment.customer_phone ?? "Няма телефон",
+    serviceType: appointment.service_type ?? appointment.title,
+    location: appointment.location ?? "Няма адрес",
+    notes: appointment.notes ?? "",
+    hasGoogleEvent: Boolean(appointment.google_calendar_event_id),
   }));
 }
 
