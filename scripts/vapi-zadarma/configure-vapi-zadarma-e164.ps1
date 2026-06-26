@@ -1,7 +1,7 @@
 param(
   [string]$DefaultApiBaseUrl = "https://api.vapi.ai",
   [string]$DefaultZadarmaNumber = "+35924372749",
-  [string]$DefaultAssistantName = "LeadSaver HVAC Receptionist BG"
+  [string]$DefaultAssistantName = "LeadSaver Booking Receptionist BG"
 )
 
 $ErrorActionPreference = "Stop"

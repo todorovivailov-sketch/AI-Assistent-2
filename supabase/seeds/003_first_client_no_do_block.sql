@@ -83,7 +83,7 @@ with upserted_assistant as (
   select
     seed_org.organization_id,
     '3a342308-b8fb-4194-a629-08fd978fdeea',
-    'LeadSaver HVAC Receptionist BG',
+    'LeadSaver Booking Receptionist BG',
     'bg',
     'gpt-5',
     'vapi',

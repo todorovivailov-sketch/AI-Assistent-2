@@ -78,7 +78,7 @@ begin
   values (
     target_org_id,
     '3a342308-b8fb-4194-a629-08fd978fdeea',
-    'LeadSaver HVAC Receptionist BG',
+    'LeadSaver Booking Receptionist BG',
     'bg',
     'gpt-5',
     'vapi',
@@ -144,4 +144,3 @@ begin
     (target_org_id, 'Serviz termopompa', 'Diagnostika i serviz na termopompa', 90, 'EUR', 'active')
   on conflict (organization_id, name) do update set status = excluded.status;
 end $$;
-

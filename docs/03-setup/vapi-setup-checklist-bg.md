@@ -48,7 +48,7 @@ Assistants -> Create Assistant
 Име:
 
 ```text
-LeadSaver HVAC Receptionist BG
+LeadSaver Booking Receptionist BG
 ```
 
 Първа цел:
@@ -205,7 +205,7 @@ Build / Phone Numbers -> Zadarma Sofia Number -> Inbound Settings -> Assistant
 Избираш:
 
 ```text
-LeadSaver HVAC Receptionist BG
+LeadSaver Booking Receptionist BG
 ```
 
 Ако има Outbound Form/Outbound Settings, също го assign-ваме към същия assistant.
@@ -283,4 +283,3 @@ Backend-ът ще пише в:
 - Vapi SIP trunking: https://docs.vapi.ai/advanced/sip/sip-trunk
 - Vapi Server URLs: https://docs.vapi.ai/server-url
 - Vapi Server Events / tool calls: https://docs.vapi.ai/server-url/events
-

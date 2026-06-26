@@ -21,7 +21,7 @@ on conflict (organization_id, user_id) do update set role = excluded.role;
 
 -- 3. Assistant
 insert into public.assistants (organization_id, vapi_assistant_id, name, default_language, model, voice_provider, first_message, status)
-select organizations.id, '3a342308-b8fb-4194-a629-08fd978fdeea', 'LeadSaver HVAC Receptionist BG', 'bg', 'gpt-5', 'vapi', 'Zdraveyte, svarzahte se s asistenta na firmata. Kak moga da pomogna?', 'active'
+select organizations.id, '3a342308-b8fb-4194-a629-08fd978fdeea', 'LeadSaver Booking Receptionist BG', 'bg', 'gpt-5', 'vapi', 'Zdraveyte, kak moga da pomogna?', 'active'
 from public.organizations
 where organizations.slug = 'demo-hvac-company'
 on conflict (vapi_assistant_id) do update set name = excluded.name;
@@ -60,4 +60,3 @@ from public.organizations
 left join public.phone_numbers on phone_numbers.organization_id = organizations.id
 left join public.assistants on assistants.organization_id = organizations.id
 where organizations.slug = 'demo-hvac-company';
-

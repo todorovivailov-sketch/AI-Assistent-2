@@ -1,6 +1,6 @@
 param(
   [string]$DefaultApiBaseUrl = "https://api.vapi.ai",
-  [string]$DefaultAssistantName = "LeadSaver HVAC Receptionist BG",
+  [string]$DefaultAssistantName = "LeadSaver Booking Receptionist BG",
   [string]$DefaultSipUsername = "leadsaver35924372749"
 )
 

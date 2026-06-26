@@ -64,14 +64,15 @@
   for calendar `todorov.ivailo.v@gmail.com` with `0` imported, `0` updated, `0` skipped.
 - Generic Bulgarian booking receptionist prompt created in
   `docs/03-setup/generic-booking-receptionist-prompt-bg.md`.
+- Vapi assistant renamed to `LeadSaver Booking Receptionist BG`, switched to the
+  generic booking prompt, and attached to `check_availability` plus `book_appointment`.
 - Local verification: lint OK, build OK, npm audit 0 vulnerabilities.
 
 ## Building Next
 
-1. Configure the two Vapi tools in the Vapi assistant UI.
-2. Run the Supabase Google event id index migration if it has not been applied.
-3. Test a real phone booking from Vapi into the app calendar and Google Calendar.
-4. Build per-client setup flow: company, assistant, phone number, calendar, notifications.
+1. Test a real phone booking from Vapi into the app calendar and Google Calendar.
+2. If speech recognition still misses names or Bulgarian words, test an alternative Bulgarian-capable transcriber.
+3. Build per-client setup flow: company, assistant, phone number, calendar, notifications.
 
 ## Product Model
 

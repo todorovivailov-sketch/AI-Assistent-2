@@ -1,12 +1,12 @@
 # AI Receptionist
 
 AI Receptionist is a multi-client voice receptionist product for local service businesses.
-The first working setup is a Bulgarian HVAC receptionist connected through Vapi and Zadarma.
+The first working setup is a generic Bulgarian booking receptionist connected through Vapi and Zadarma.
 
 ## Current Status
 
 - Zadarma Sofia number is active: `+35924372749`
-- Vapi assistant is created: `LeadSaver HVAC Receptionist BG`
+- Vapi assistant is created: `LeadSaver Booking Receptionist BG`
 - Working Zadarma external SIP URI: `+35924372749@sip.vapi.ai`
 - Supabase schema is installed.
 - First client seed is installed.

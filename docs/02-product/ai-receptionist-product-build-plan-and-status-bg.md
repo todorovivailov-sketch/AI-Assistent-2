@@ -35,7 +35,7 @@
 - Vapi assistant е създаден:
 
 ```text
-LeadSaver HVAC Receptionist BG
+LeadSaver Booking Receptionist BG
 assistant_id: 3a342308-b8fb-4194-a629-08fd978fdeea
 ```
 
@@ -1084,4 +1084,3 @@ Scripts и diagnostic files:
 
 **Approach B.**  
 Първо real call ingestion, после dashboard. Причината е, че вече имаме работещ телефон; следващият най-важен риск е дали можем надеждно да превърнем разговор в данни.
-
