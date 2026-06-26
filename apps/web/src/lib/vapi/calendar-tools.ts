@@ -1,4 +1,5 @@
 import { getSupabaseServiceClient } from "@/lib/supabase/service";
+import { createGoogleCalendarEvent, listGoogleCalendarEvents } from "@/lib/google/calendar";
 import type { OrganizationResolution, VapiMessage } from "@/lib/vapi/payload";
 
 type JsonRecord = Record<string, unknown>;
@@ -10,6 +11,8 @@ type ToolCall = {
 };
 
 type CalendarSettings = {
+  provider: string;
+  calendarId: string | null;
   slotMinutes: number;
   bufferMinutes: number;
   minNoticeMinutes: number;
@@ -33,6 +36,8 @@ type AppointmentWindow = {
 };
 
 const defaultCalendarSettings: CalendarSettings = {
+  provider: "manual",
+  calendarId: null,
   slotMinutes: 60,
   bufferMinutes: 15,
   minNoticeMinutes: 120,
@@ -164,7 +169,44 @@ async function bookAppointment(parameters: JsonRecord, resolution: OrganizationR
     return "Не успях да запиша часа в календара. Кажи на клиента, че екипът ще потвърди по телефона.";
   }
 
-  return `Записах час за ${formatSofiaDateTime(startsAt)}. Номер на записа: ${data.id}. Потвърди на клиента, че заявката е записана.`;
+  let googleCalendarEventId: string | null = null;
+
+  try {
+    const googleEvent = await createGoogleCalendarEvent({
+      calendarId: settings.calendarId,
+      organizationId,
+      appointmentId: data.id,
+      summary: title,
+      description: buildGoogleEventDescription({
+        customerName,
+        customerPhone,
+        serviceType,
+        notes,
+      }),
+      location: location ?? null,
+      startsAt,
+      endsAt,
+      timeZone: settings.timezone,
+    });
+
+    if (googleEvent) {
+      googleCalendarEventId = googleEvent.id;
+      const { error: googleEventUpdateError } = await supabase
+        .from("appointments")
+        .update({ google_calendar_event_id: googleEvent.id })
+        .eq("id", data.id);
+
+      if (googleEventUpdateError) {
+        console.error("Google Calendar event id update failed", googleEventUpdateError);
+      }
+    }
+  } catch (googleError) {
+    console.error("Google Calendar event create failed", googleError);
+  }
+
+  const syncText = googleCalendarEventId ? " Часът е синхронизиран и с Google Calendar." : "";
+
+  return `Записах час за ${formatSofiaDateTime(startsAt)}. Номер на записа: ${data.id}.${syncText} Потвърди на клиента, че заявката е записана.`;
 }
 
 async function findAvailableSlots(
@@ -176,7 +218,7 @@ async function findAvailableSlots(
   const workingWindows = await getWorkingWindows(organizationId, date);
   const dayStart = fromSofiaLocalDateTime(date, 0, 0);
   const dayEnd = fromSofiaLocalDateTime(date, 23, 59);
-  const existing = await getAppointmentsForWindow(organizationId, dayStart, dayEnd, durationMinutes);
+  const existing = await getAppointmentsForWindow(organizationId, dayStart, dayEnd, durationMinutes, settings);
   const nowWithNotice = new Date(Date.now() + settings.minNoticeMinutes * 60 * 1000);
   const slots: Array<{ start: Date; end: Date }> = [];
 
@@ -235,11 +277,13 @@ async function getCalendarSettings(organizationId: string): Promise<CalendarSett
   const supabase = getSupabaseServiceClient();
   const { data } = await supabase
     .from("calendar_settings")
-    .select("slot_minutes, buffer_minutes, min_notice_minutes, timezone")
+    .select("provider, calendar_id, slot_minutes, buffer_minutes, min_notice_minutes, timezone")
     .eq("organization_id", organizationId)
     .maybeSingle();
 
   return {
+    provider: data?.provider ?? defaultCalendarSettings.provider,
+    calendarId: data?.calendar_id ?? defaultCalendarSettings.calendarId,
     slotMinutes: data?.slot_minutes ?? defaultCalendarSettings.slotMinutes,
     bufferMinutes: data?.buffer_minutes ?? defaultCalendarSettings.bufferMinutes,
     minNoticeMinutes: data?.min_notice_minutes ?? defaultCalendarSettings.minNoticeMinutes,
@@ -293,6 +337,21 @@ async function getAppointmentsForWindow(
   organizationId: string,
   startsAt: Date,
   endsAt: Date,
+  fallbackDurationMinutes: number,
+  settings: CalendarSettings
+): Promise<AppointmentWindow[]> {
+  const [appAppointments, googleAppointments] = await Promise.all([
+    getSupabaseAppointmentsForWindow(organizationId, startsAt, endsAt, fallbackDurationMinutes),
+    getGoogleAppointmentsForWindow(settings, startsAt, endsAt),
+  ]);
+
+  return [...appAppointments, ...googleAppointments];
+}
+
+async function getSupabaseAppointmentsForWindow(
+  organizationId: string,
+  startsAt: Date,
+  endsAt: Date,
   fallbackDurationMinutes: number
 ): Promise<AppointmentWindow[]> {
   const supabase = getSupabaseServiceClient();
@@ -323,6 +382,47 @@ async function getAppointmentsForWindow(
         endsAt: end,
       };
     });
+}
+
+async function getGoogleAppointmentsForWindow(
+  settings: CalendarSettings,
+  startsAt: Date,
+  endsAt: Date
+): Promise<AppointmentWindow[]> {
+  try {
+    const googleEvents = await listGoogleCalendarEvents({
+      calendarId: settings.calendarId,
+      timeMin: startsAt,
+      timeMax: endsAt,
+      timeZone: settings.timezone,
+    });
+
+    return googleEvents.map((event) => ({
+      id: `google:${event.id}`,
+      startsAt: event.startsAt,
+      endsAt: event.endsAt,
+    }));
+  } catch (error) {
+    console.error("Could not load Google Calendar conflicts", error);
+    return [];
+  }
+}
+
+function buildGoogleEventDescription(input: {
+  customerName: string | null;
+  customerPhone: string | null;
+  serviceType: string;
+  notes: string | null;
+}) {
+  return [
+    "Записано от AI Receptionist.",
+    input.customerName ? `Клиент: ${input.customerName}` : null,
+    input.customerPhone ? `Телефон: ${input.customerPhone}` : null,
+    input.serviceType ? `Услуга: ${input.serviceType}` : null,
+    input.notes ? `Бележки: ${input.notes}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function hasConflict(existing: AppointmentWindow[], start: Date, end: Date, bufferMinutes: number) {

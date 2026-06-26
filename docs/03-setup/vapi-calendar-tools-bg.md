@@ -137,10 +137,11 @@ Implemented now:
 - Assistant can check availability from Supabase `appointments`.
 - Assistant can book an appointment into Supabase `appointments`.
 - App calendar shows Supabase `appointments`.
+- If Google Calendar sync is enabled, availability also checks Google Calendar busy events.
+- If Google Calendar sync is enabled, new assistant bookings are created in Google Calendar too.
 
 Next:
 
-- Add Google OAuth or service account.
-- When booking succeeds in Supabase, create the same event in Google Calendar.
-- Store `google_calendar_event_id` on the Supabase appointment.
-- Add Google-to-Supabase import/sync for manually created Google events.
+- Add Google service account credentials in Vercel.
+- Add the Google calendar id in Supabase `calendar_settings`.
+- Run `/api/calendar/google/sync` manually or from Vercel Cron to import manually created Google events.

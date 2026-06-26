@@ -44,17 +44,20 @@
 - Vapi calendar tools added:
   `check_availability` reads Supabase appointments and returns free slots.
   `book_appointment` creates confirmed Supabase appointments.
-  Google Calendar sync is the next integration layer on the same booking flow.
+- Google Calendar sync layer added behind env flags:
+  availability can include Google Calendar busy events, bookings can create Google Calendar events,
+  and `/api/calendar/google/sync` can import Google events into Supabase.
+- Google Calendar setup instructions saved in `docs/03-setup/google-calendar-sync-bg.md`.
 - Local verification: lint OK, build OK, npm audit 0 vulnerabilities.
 
 ## Building Next
 
-1. Set Vapi Server URL to the current Cloudflare tunnel URL.
-2. Make a real phone call and confirm Vapi sends the webhook.
-3. Replace demo dashboard data with real Supabase reads.
-4. Add appointment booking with Google Calendar.
-5. Build per-client setup flow: company, assistant, phone number, calendar, notifications.
-6. Deploy the app so Vapi uses a permanent HTTPS URL instead of localtunnel.
+1. Configure the two Vapi tools in the Vapi assistant UI.
+2. Add Google service account credentials, calendar id, and Vercel env vars.
+3. Run the Supabase Google event id index migration.
+4. Test a real phone booking from Vapi into the app calendar and Google Calendar.
+5. Add Vercel Cron for `/api/calendar/google/sync`.
+6. Build per-client setup flow: company, assistant, phone number, calendar, notifications.
 
 ## Product Model
 
