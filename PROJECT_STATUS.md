@@ -54,20 +54,22 @@
   `GOOGLE_CALENDAR_SYNC_ENABLED=true`, `CRON_SECRET`, and `CALENDAR_SYNC_SECRET`.
 - Production redeployed with the cron config; Vercel reports `/api/calendar/google/sync`
   cron enabled and a manual cron trigger succeeded.
-- Google service account token works, but it currently sees zero calendars. The target
-  Google Calendar still needs to be shared with
-  `ai-receptionist-calendar@ai-assistent-2-500610.iam.gserviceaccount.com`, and the
-  calendar id must be added before real Google sync can work.
+- Google Calendar `todorov.ivailo.v@gmail.com` was shared with
+  `ai-receptionist-calendar@ai-assistent-2-500610.iam.gserviceaccount.com`.
+- Vercel production env now includes `GOOGLE_CALENDAR_DEFAULT_ID=todorov.ivailo.v@gmail.com`.
+- Supabase `calendar_settings` for `demo-hvac-company` now uses provider `google`,
+  booking enabled, calendar id `todorov.ivailo.v@gmail.com`, and `Europe/Sofia`.
+- Production Google Calendar sync verified successfully:
+  `/api/calendar/google/sync?organization=demo-hvac-company` returned `ok: true`
+  for calendar `todorov.ivailo.v@gmail.com` with `0` imported, `0` updated, `0` skipped.
 - Local verification: lint OK, build OK, npm audit 0 vulnerabilities.
 
 ## Building Next
 
 1. Configure the two Vapi tools in the Vapi assistant UI.
-2. Share the target Google Calendar with the service account and capture its calendar id.
-3. Add that calendar id to Vercel/Supabase calendar settings.
-4. Run the Supabase Google event id index migration if it has not been applied.
-5. Test a real phone booking from Vapi into the app calendar and Google Calendar.
-6. Build per-client setup flow: company, assistant, phone number, calendar, notifications.
+2. Run the Supabase Google event id index migration if it has not been applied.
+3. Test a real phone booking from Vapi into the app calendar and Google Calendar.
+4. Build per-client setup flow: company, assistant, phone number, calendar, notifications.
 
 ## Product Model
 
