@@ -22,7 +22,7 @@ export async function GET() {
       process.env.NEXT_PUBLIC_SUPABASE_URL &&
         (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)
     ),
-    authMode: process.env.VAPI_WEBHOOK_SECRET ? "bearer" : "development-no-auth",
+    authMode: getWebhookAuthMode(),
   });
 }
 
@@ -192,6 +192,18 @@ function isAuthorizedVapiRequest(request: Request): boolean {
   }
 
   return constantTimeEqual(suppliedSecret, expectedSecret);
+}
+
+function getWebhookAuthMode(): string {
+  if (process.env.VAPI_WEBHOOK_SECRET) {
+    return "bearer";
+  }
+
+  if (process.env.VAPI_WEBHOOK_ALLOW_UNAUTHENTICATED === "true") {
+    return "unauthenticated-explicit";
+  }
+
+  return process.env.NODE_ENV === "production" ? "blocked-without-secret" : "development-no-auth";
 }
 
 function constantTimeEqual(left: string, right: string): boolean {
