@@ -184,9 +184,11 @@ async function findAppointmentByGoogleEventId(organizationId: string, googleCale
 }
 
 function isAuthorizedSyncRequest(request: Request): boolean {
-  const expectedSecret = process.env.CALENDAR_SYNC_SECRET;
+  const expectedSecrets = [process.env.CALENDAR_SYNC_SECRET, process.env.CRON_SECRET].filter(
+    (secret): secret is string => Boolean(secret)
+  );
 
-  if (!expectedSecret) {
+  if (expectedSecrets.length === 0) {
     return process.env.NODE_ENV !== "production";
   }
 
@@ -200,7 +202,7 @@ function isAuthorizedSyncRequest(request: Request): boolean {
     return false;
   }
 
-  return constantTimeEqual(suppliedSecret, expectedSecret);
+  return expectedSecrets.some((expectedSecret) => constantTimeEqual(suppliedSecret, expectedSecret));
 }
 
 function constantTimeEqual(left: string, right: string): boolean {

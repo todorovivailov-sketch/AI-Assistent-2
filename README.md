@@ -13,10 +13,10 @@ The first working setup is a Bulgarian HVAC receptionist connected through Vapi 
 - Web app skeleton is built in `apps/web`.
 - Webhook env is configured in `apps/web/.env.local`.
 - Local webhook test writes calls to Supabase.
-- Current Cloudflare tunnel Vapi Server URL:
-  `https://disposal-absent-sullivan-fought.trycloudflare.com/api/vapi/end-of-call`
+- Production Vapi Server URL:
+  `https://ai-assistent-2-delta.vercel.app/api/vapi/end-of-call`
 
-Quick tunnel URLs are temporary. If the tunnel is restarted, update the Server URL in Vapi.
+Cloudflare tunnel URLs are only for temporary local testing. Production Vapi should use the Vercel URL.
 
 ## Folder Structure
 
@@ -38,12 +38,12 @@ AI Receptionist/
 
 ## Build Order
 
-1. Set Vapi Server URL to the current Cloudflare tunnel endpoint.
-2. Call the Zadarma number and confirm a real Vapi webhook lands in Supabase.
-3. Replace demo dashboard data with Supabase reads.
-4. Add Google Calendar availability and booking.
-5. Add client onboarding flow for new businesses.
-6. Deploy the web app with a permanent HTTPS URL.
+1. Configure Vapi Server URL to the production Vercel endpoint.
+2. Configure Vapi `check_availability` and `book_appointment` tools.
+3. Add Google Calendar service account env vars in Vercel.
+4. Run the Google Calendar Supabase migration/index if needed.
+5. Test a real phone booking into Supabase and Google Calendar.
+6. Add client onboarding flow for new businesses.
 
 ## Local Commands
 

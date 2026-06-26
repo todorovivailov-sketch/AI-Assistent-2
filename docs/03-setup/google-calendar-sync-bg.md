@@ -38,9 +38,13 @@ GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL=service-account-email-from-google
 GOOGLE_CALENDAR_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n
 GOOGLE_CALENDAR_DEFAULT_ID=calendar-id-from-google
 CALENDAR_SYNC_SECRET=random-long-secret
+CRON_SECRET=random-long-secret
 ```
 
 The private key must keep line breaks as `\n` when entered as one line.
+
+Use the same random value for `CALENDAR_SYNC_SECRET` and `CRON_SECRET`, or set only
+`CRON_SECRET` if the sync endpoint will be called only by Vercel Cron.
 
 ## Supabase Calendar Settings
 
@@ -79,6 +83,24 @@ curl -X POST "https://ai-assistent-2-delta.vercel.app/api/calendar/google/sync?o
 ```
 
 This imports future Google Calendar events into Supabase `appointments`, so they show in the app calendar.
+
+## Vercel Cron
+
+The repo includes `apps/web/vercel.json` with a daily sync:
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/calendar/google/sync",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}
+```
+
+Vercel sends the `CRON_SECRET` value as the `Authorization: Bearer ...` header.
+Deploy after adding the env vars so the cron can run in production.
 
 ## Vapi Tools
 
