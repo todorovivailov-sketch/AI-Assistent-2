@@ -49,7 +49,7 @@ Parameters:
     },
     "serviceType": {
       "type": "string",
-      "description": "Requested service, for example монтаж, ремонт, профилактика, термопомпа or оферта."
+      "description": "Requested service or reason for the appointment, as free text from the caller."
     }
   },
   "required": ["date"]

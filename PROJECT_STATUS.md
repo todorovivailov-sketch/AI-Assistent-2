@@ -62,6 +62,8 @@
 - Production Google Calendar sync verified successfully:
   `/api/calendar/google/sync?organization=demo-hvac-company` returned `ok: true`
   for calendar `todorov.ivailo.v@gmail.com` with `0` imported, `0` updated, `0` skipped.
+- Generic Bulgarian booking receptionist prompt created in
+  `docs/03-setup/generic-booking-receptionist-prompt-bg.md`.
 - Local verification: lint OK, build OK, npm audit 0 vulnerabilities.
 
 ## Building Next
