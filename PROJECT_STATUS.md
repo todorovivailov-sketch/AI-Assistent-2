@@ -66,6 +66,8 @@
   `docs/03-setup/generic-booking-receptionist-prompt-bg.md`.
 - Vapi assistant renamed to `LeadSaver Booking Receptionist BG`, switched to the
   generic booking prompt, and attached to `check_availability` plus `book_appointment`.
+- Availability flow updated: the assistant now asks for the caller's preferred time
+  before checking the calendar, then checks that exact `date` + `time` slot.
 - Local verification: lint OK, build OK, npm audit 0 vulnerabilities.
 
 ## Building Next

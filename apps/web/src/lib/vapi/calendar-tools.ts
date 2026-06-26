@@ -94,6 +94,7 @@ async function checkAvailability(parameters: JsonRecord, resolution: Organizatio
   const dateText = readString(parameters.date) ?? readString(parameters.day);
   const durationMinutes =
     readNumber(parameters.durationMinutes) ?? readNumber(parameters.duration_minutes) ?? settings.slotMinutes;
+  const requestedStart = parseAvailabilityStart(parameters, dateText);
 
   if (!dateText) {
     return "Попитай клиента за конкретна дата, за да проверя свободните часове.";
@@ -105,15 +106,26 @@ async function checkAvailability(parameters: JsonRecord, resolution: Organizatio
     return "Не разбрах датата. Попитай клиента за дата във формат ден и месец.";
   }
 
+  if (!requestedStart) {
+    return `Попитай клиента в колко часа му е удобно за ${formatSofiaDate(date)}. Не предлагай часове сам, докато клиентът не каже предпочитан час.`;
+  }
+
   const slots = await findAvailableSlots(organizationId, date, durationMinutes, settings);
 
   if (slots.length === 0) {
     return `Няма свободни часове за ${formatSofiaDate(date)}. Предложи на клиента друг ден.`;
   }
 
-  const spokenSlots = slots.slice(0, 2).map((slot) => formatSofiaTime(slot.start));
+  const requestedEnd = new Date(requestedStart.getTime() + durationMinutes * 60 * 1000);
+  const isRequestedSlotAvailable = slots.some(
+    (slot) => slot.start.getTime() === requestedStart.getTime() && slot.end.getTime() === requestedEnd.getTime()
+  );
 
-  return `Свободни часове за ${formatSofiaDate(date)}: ${spokenSlots.join(" или ")}. Предложи само тези часове.`;
+  if (isRequestedSlotAvailable) {
+    return `Часът ${formatSofiaDateTime(requestedStart)} е свободен. Попитай клиента дали да го запишеш.`;
+  }
+
+  return `Часът ${formatSofiaDateTime(requestedStart)} не е свободен. Попитай клиента за друг удобен час или друг ден.`;
 }
 
 async function bookAppointment(parameters: JsonRecord, resolution: OrganizationResolution | null) {
@@ -478,6 +490,31 @@ function parseAppointmentStart(parameters: JsonRecord): Date | null {
   return fromSofiaLocalDateTime(date, time.hour, time.minute);
 }
 
+function parseAvailabilityStart(parameters: JsonRecord, dateText: string | null) {
+  const startsAt = readString(parameters.startsAt) ?? readString(parameters.starts_at) ?? readString(parameters.datetime);
+
+  if (startsAt) {
+    const parsed = new Date(startsAt);
+    if (Number.isFinite(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  const date = parseDateOnly(dateText);
+  const time = parseTime(
+    readString(parameters.time) ??
+      readString(parameters.preferredTime) ??
+      readString(parameters.preferred_time) ??
+      ""
+  );
+
+  if (!date || !time) {
+    return null;
+  }
+
+  return fromSofiaLocalDateTime(date, time.hour, time.minute);
+}
+
 function parseDateOnly(value: string | null) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return null;
@@ -564,14 +601,6 @@ function formatSofiaDate(value: Date) {
     weekday: "long",
     day: "2-digit",
     month: "long",
-  }).format(value);
-}
-
-function formatSofiaTime(value: Date) {
-  return new Intl.DateTimeFormat("bg-BG", {
-    timeZone: "Europe/Sofia",
-    hour: "2-digit",
-    minute: "2-digit",
   }).format(value);
 }
 

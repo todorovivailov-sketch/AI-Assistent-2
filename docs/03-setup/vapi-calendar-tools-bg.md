@@ -30,7 +30,7 @@ check_availability
 Description:
 
 ```text
-Checks available appointment slots in the company calendar for a specific date. Use this before offering appointment times to the caller.
+Checks whether the caller's preferred appointment time is available in the company calendar. Use this after collecting both date and time.
 ```
 
 Parameters:
@@ -43,6 +43,10 @@ Parameters:
       "type": "string",
       "description": "Date to check in YYYY-MM-DD format in Europe/Sofia timezone."
     },
+    "time": {
+      "type": "string",
+      "description": "Preferred appointment time in HH:mm 24-hour format in Europe/Sofia timezone, for example 15:00."
+    },
     "durationMinutes": {
       "type": "number",
       "description": "Appointment duration in minutes. Use 60 unless the service requires longer."
@@ -52,14 +56,14 @@ Parameters:
       "description": "Requested service or reason for the appointment, as free text from the caller."
     }
   },
-  "required": ["date"]
+  "required": ["date", "time"]
 }
 ```
 
 Assistant behavior:
 
 ```text
-When the caller asks for an appointment, first collect the date. Then call check_availability. Offer only times returned by the tool. Do not invent times.
+When the caller asks for an appointment, first collect the date and preferred time. Then call check_availability for that exact time. If the caller gives only a date, ask what time is convenient before calling the tool. Do not invent times.
 ```
 
 ## Tool 2: book_appointment
@@ -126,8 +130,8 @@ Parameters:
 Assistant behavior:
 
 ```text
-Only call book_appointment after check_availability returned slots and the caller chose one slot.
-After booking, read the confirmation from the tool. If the tool says the slot is no longer free, call check_availability again and offer another slot.
+Only call book_appointment after check_availability confirms the caller's preferred time is free and the caller agrees to book it.
+After booking, read the confirmation from the tool. If the tool says the slot is no longer free, ask the caller for another preferred time before calling check_availability again.
 ```
 
 ## Current Sync State
