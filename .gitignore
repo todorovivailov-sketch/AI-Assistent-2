@@ -1,0 +1,37 @@
+# dependencies
+node_modules/
+**/node_modules/
+
+# builds and caches
+.next/
+**/.next/
+out/
+build/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# local env and secrets
+.env*
+**/.env*
+!.env.example
+!**/.env.example
+
+# local runtime archive
+archive/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# platform state
+.vercel/
+**/.vercel/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+*.pem

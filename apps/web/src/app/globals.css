@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f6f1;
+  --foreground: #1b1e22;
+  --surface: #ffffff;
+  --surface-muted: #efeee7;
+  --line: #dedbd0;
+  --ink-soft: #626a73;
+  --accent: #0f766e;
+  --accent-strong: #115e59;
+  --warning: #b7791f;
+  --danger: #b42318;
+  --info: #2563eb;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #151719;
+    --foreground: #f5f2ea;
+    --surface: #1f2327;
+    --surface-muted: #262b30;
+    --line: #353b42;
+    --ink-soft: #a8b0b8;
+    --accent: #2dd4bf;
+    --accent-strong: #5eead4;
+    --warning: #f2b84b;
+    --danger: #f97066;
+    --info: #60a5fa;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  letter-spacing: 0;
+}
+
+::selection {
+  background: rgba(15, 118, 110, 0.18);
+}
