@@ -30,6 +30,14 @@
   no longer resolves and no later Vapi webhook rows reached Supabase.
 - Current Cloudflare tunnel Vapi Server URL copied to clipboard:
   `https://relay-transit-zone-commented.trycloudflare.com/api/vapi/end-of-call`
+- GitHub repository connected and pushed:
+  `https://github.com/todorovivailov-sketch/AI-Assistent-2`
+- Vercel production deployment is live:
+  `https://ai-assistent-2-delta.vercel.app`
+- Permanent Vapi Server URL copied to clipboard:
+  `https://ai-assistent-2-delta.vercel.app/api/vapi/end-of-call`
+- Vercel production env configured with Supabase keys and temporary
+  `VAPI_WEBHOOK_ALLOW_UNAUTHENTICATED=true`.
 - Local verification: lint OK, build OK, npm audit 0 vulnerabilities.
 
 ## Building Next
