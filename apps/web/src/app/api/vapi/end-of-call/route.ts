@@ -174,9 +174,11 @@ async function resolveOrganization(message: ReturnType<typeof getVapiMessage>): 
 
 function isAuthorizedVapiRequest(request: Request): boolean {
   const expectedSecret = process.env.VAPI_WEBHOOK_SECRET;
+  const allowsUnauthenticated =
+    process.env.VAPI_WEBHOOK_ALLOW_UNAUTHENTICATED === "true";
 
   if (!expectedSecret) {
-    return process.env.NODE_ENV !== "production";
+    return allowsUnauthenticated || process.env.NODE_ENV !== "production";
   }
 
   const authorization = request.headers.get("authorization");
