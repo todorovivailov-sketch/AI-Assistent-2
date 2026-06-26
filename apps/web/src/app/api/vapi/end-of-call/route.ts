@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 
 import { getSupabaseServiceClient } from "@/lib/supabase/service";
+import { handleVapiToolCalls } from "@/lib/vapi/calendar-tools";
 import {
   buildCallInsert,
   buildLeadInsert,
@@ -72,6 +73,11 @@ export async function POST(request: Request) {
 
   if (webhookEventError && webhookEventError.code !== "23505") {
     console.error("Vapi webhook event insert failed", webhookEventError);
+  }
+
+  if (message.type === "tool-calls") {
+    const toolResult = await handleVapiToolCalls(message, resolution);
+    return NextResponse.json(toolResult);
   }
 
   if (message.type !== "end-of-call-report") {

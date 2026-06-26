@@ -41,6 +41,10 @@
 - App calendar MVP added:
   `/appointments` now reads live Supabase `appointments` and shows a weekly calendar
   with time slots, appointment cards, week navigation, and an upcoming list.
+- Vapi calendar tools added:
+  `check_availability` reads Supabase appointments and returns free slots.
+  `book_appointment` creates confirmed Supabase appointments.
+  Google Calendar sync is the next integration layer on the same booking flow.
 - Local verification: lint OK, build OK, npm audit 0 vulnerabilities.
 
 ## Building Next

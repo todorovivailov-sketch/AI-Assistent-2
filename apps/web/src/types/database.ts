@@ -106,6 +106,56 @@ export type Database = {
           updated_at?: string;
         }
       >;
+      calendar_settings: PublicTable<
+        {
+          id: string;
+          organization_id: string;
+          provider: string;
+          calendar_id: string | null;
+          timezone: string;
+          booking_enabled: boolean;
+          slot_minutes: number;
+          buffer_minutes: number;
+          min_notice_minutes: number;
+          created_at: string;
+          updated_at: string;
+        },
+        {
+          id?: string;
+          organization_id: string;
+          provider?: string;
+          calendar_id?: string | null;
+          timezone?: string;
+          booking_enabled?: boolean;
+          slot_minutes?: number;
+          buffer_minutes?: number;
+          min_notice_minutes?: number;
+          created_at?: string;
+          updated_at?: string;
+        }
+      >;
+      business_hours: PublicTable<
+        {
+          id: string;
+          organization_id: string;
+          weekday: number;
+          opens_at: string | null;
+          closes_at: string | null;
+          is_closed: boolean;
+          created_at: string;
+          updated_at: string;
+        },
+        {
+          id?: string;
+          organization_id: string;
+          weekday: number;
+          opens_at?: string | null;
+          closes_at?: string | null;
+          is_closed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        }
+      >;
       calls: PublicTable<
         {
           id: string;
