@@ -111,9 +111,9 @@ async function checkAvailability(parameters: JsonRecord, resolution: Organizatio
     return `Няма свободни часове за ${formatSofiaDate(date)}. Предложи на клиента друг ден.`;
   }
 
-  const spokenSlots = slots.slice(0, 5).map((slot) => formatSofiaTime(slot.start));
+  const spokenSlots = slots.slice(0, 2).map((slot) => formatSofiaTime(slot.start));
 
-  return `Свободни часове за ${formatSofiaDate(date)}: ${spokenSlots.join(", ")}. Предложи един от тези часове.`;
+  return `Свободни часове за ${formatSofiaDate(date)}: ${spokenSlots.join(" или ")}. Предложи само тези часове.`;
 }
 
 async function bookAppointment(parameters: JsonRecord, resolution: OrganizationResolution | null) {
@@ -436,15 +436,26 @@ function hasConflict(existing: AppointmentWindow[], start: Date, end: Date, buff
 
 function getToolCalls(message: VapiMessage): ToolCall[] {
   const payloadMessage = asRecord(message.payload.message);
-  const list = Array.isArray(payloadMessage.toolCallList) ? payloadMessage.toolCallList : [];
+  const rootPayload = asRecord(message.payload);
+  const candidateLists = [
+    payloadMessage.toolCallList,
+    payloadMessage.toolCalls,
+    rootPayload.toolCallList,
+    rootPayload.toolCalls,
+  ];
+  const list = candidateLists.find(Array.isArray) ?? [];
 
   return list
     .map((item) => asRecord(item))
-    .map((item) => ({
-      id: readString(item.id) ?? "unknown",
-      name: readString(item.name) ?? "unknown",
-      parameters: asRecord(item.parameters),
-    }));
+    .map((item) => {
+      const functionCall = asRecord(item.function);
+
+      return {
+        id: readString(item.id) ?? readString(item.toolCallId) ?? "unknown",
+        name: readString(item.name) ?? readString(functionCall.name) ?? "unknown",
+        parameters: readRecord(item.parameters ?? item.arguments ?? functionCall.parameters ?? functionCall.arguments),
+      };
+    });
 }
 
 function parseAppointmentStart(parameters: JsonRecord): Date | null {
@@ -603,4 +614,16 @@ function readString(value: unknown): string | null {
 
 function asRecord(value: unknown): JsonRecord {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as JsonRecord) : {};
+}
+
+function readRecord(value: unknown): JsonRecord {
+  if (typeof value === "string" && value.trim() !== "") {
+    try {
+      return asRecord(JSON.parse(value));
+    } catch {
+      return {};
+    }
+  }
+
+  return asRecord(value);
 }

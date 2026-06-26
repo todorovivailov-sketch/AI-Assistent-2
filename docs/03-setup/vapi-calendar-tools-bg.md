@@ -140,6 +140,17 @@ Implemented now:
 - If Google Calendar sync is enabled, availability also checks Google Calendar busy events.
 - If Google Calendar sync is enabled, new assistant bookings are created in Google Calendar too.
 
+## Troubleshooting
+
+If the assistant says "checking" during a real call but no time is returned, check
+`webhook_events` for a `tool-calls` event.
+
+- If there is no `tool-calls` event, the Vapi assistant does not have these tools
+  attached or the tool server URL is not configured for the assistant.
+- If there is a `tool-calls` event and the response fails, debug the backend route
+  `/api/vapi/end-of-call`.
+- A normal backend check should return in about 2 seconds.
+
 Next:
 
 - Add Google service account credentials in Vercel.
