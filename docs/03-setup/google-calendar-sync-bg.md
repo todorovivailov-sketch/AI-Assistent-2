@@ -58,7 +58,7 @@ set
   calendar_id = 'YOUR_GOOGLE_CALENDAR_ID',
   timezone = 'Europe/Sofia',
   slot_minutes = 60,
-  buffer_minutes = 15,
+  buffer_minutes = 0,
   min_notice_minutes = 120
 where organization_id = (
   select id from public.organizations where slug = 'demo-hvac-company'

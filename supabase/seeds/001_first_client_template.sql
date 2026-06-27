@@ -146,7 +146,7 @@ created_calendar_settings as (
     'Europe/Sofia',
     false,
     60,
-    15,
+    0,
     120
   from created_phone_number
   on conflict (organization_id) do update set

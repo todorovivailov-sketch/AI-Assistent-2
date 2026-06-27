@@ -1,5 +1,6 @@
 import { getSupabaseServiceClient } from "@/lib/supabase/service";
 import { createGoogleCalendarEvent, listGoogleCalendarEvents } from "@/lib/google/calendar";
+import { getIntervalAvailability, hasBufferedConflict, type AvailabilityWindow } from "@/lib/vapi/availability-logic";
 import type { OrganizationResolution, VapiMessage } from "@/lib/vapi/payload";
 
 type JsonRecord = Record<string, unknown>;
@@ -39,7 +40,7 @@ const defaultCalendarSettings: CalendarSettings = {
   provider: "manual",
   calendarId: null,
   slotMinutes: 60,
-  bufferMinutes: 15,
+  bufferMinutes: 0,
   minNoticeMinutes: 120,
   timezone: "Europe/Sofia",
 };
@@ -110,19 +111,16 @@ async function checkAvailability(parameters: JsonRecord, resolution: Organizatio
     return `Попитай клиента в колко часа му е удобно за ${formatSofiaDate(date)}. Не предлагай часове сам, докато клиентът не каже предпочитан час.`;
   }
 
+  const isRequestedSlotAvailable = await isSlotAvailable(organizationId, requestedStart, durationMinutes, settings);
+
+  if (isRequestedSlotAvailable) {
+    return `Часът ${formatSofiaDateTime(requestedStart)} е свободен. Попитай клиента дали да го запишеш.`;
+  }
+
   const slots = await findAvailableSlots(organizationId, date, durationMinutes, settings);
 
   if (slots.length === 0) {
     return `Няма свободни часове за ${formatSofiaDate(date)}. Предложи на клиента друг ден.`;
-  }
-
-  const requestedEnd = new Date(requestedStart.getTime() + durationMinutes * 60 * 1000);
-  const isRequestedSlotAvailable = slots.some(
-    (slot) => slot.start.getTime() === requestedStart.getTime() && slot.end.getTime() === requestedEnd.getTime()
-  );
-
-  if (isRequestedSlotAvailable) {
-    return `Часът ${formatSofiaDateTime(requestedStart)} е свободен. Попитай клиента дали да го запишеш.`;
   }
 
   return `Часът ${formatSofiaDateTime(requestedStart)} не е свободен. Попитай клиента за друг удобен час или друг ден.`;
@@ -241,7 +239,7 @@ async function findAvailableSlots(
     while (cursor.getTime() + durationMinutes * 60 * 1000 <= close.getTime()) {
       const end = new Date(cursor.getTime() + durationMinutes * 60 * 1000);
 
-      if (cursor >= nowWithNotice && !hasConflict(existing, cursor, end, settings.bufferMinutes)) {
+      if (cursor >= nowWithNotice && !hasBufferedConflict(existing, cursor, end, settings.bufferMinutes)) {
         slots.push({ start: cursor, end });
       }
 
@@ -261,9 +259,20 @@ async function isSlotAvailable(
   const endsAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
   const dateParts = getSofiaDateParts(startsAt);
   const date = new Date(Date.UTC(dateParts.year, dateParts.month - 1, dateParts.day));
-  const slots = await findAvailableSlots(organizationId, date, durationMinutes, settings);
+  const workingWindows = await getWorkingWindows(organizationId, date);
+  const dayStart = fromSofiaLocalDateTime(date, 0, 0);
+  const dayEnd = fromSofiaLocalDateTime(date, 23, 59);
+  const existing = await getAppointmentsForWindow(organizationId, dayStart, dayEnd, durationMinutes, settings);
+  const nowWithNotice = new Date(Date.now() + settings.minNoticeMinutes * 60 * 1000);
 
-  return slots.some((slot) => slot.start.getTime() === startsAt.getTime() && slot.end.getTime() === endsAt.getTime());
+  return getIntervalAvailability({
+    startsAt,
+    endsAt,
+    workingWindows: toAvailabilityWindows(date, workingWindows),
+    existing,
+    bufferMinutes: settings.bufferMinutes,
+    minNoticeAt: nowWithNotice,
+  }).available;
 }
 
 async function getOrganizationId(resolution: OrganizationResolution | null) {
@@ -437,15 +446,6 @@ function buildGoogleEventDescription(input: {
     .join("\n");
 }
 
-function hasConflict(existing: AppointmentWindow[], start: Date, end: Date, bufferMinutes: number) {
-  const bufferedStart = new Date(start.getTime() - bufferMinutes * 60 * 1000);
-  const bufferedEnd = new Date(end.getTime() + bufferMinutes * 60 * 1000);
-
-  return existing.some(
-    (appointment) => appointment.startsAt < bufferedEnd && appointment.endsAt > bufferedStart
-  );
-}
-
 function getToolCalls(message: VapiMessage): ToolCall[] {
   const payloadMessage = asRecord(message.payload.message);
   const rootPayload = asRecord(message.payload);
@@ -546,6 +546,13 @@ function fromSofiaLocalDateTime(date: Date, hour: number, minute: number) {
   const offset = actualPseudoUtc - desiredPseudoUtc;
 
   return new Date(guess.getTime() - offset);
+}
+
+function toAvailabilityWindows(date: Date, workingWindows: WorkingWindow[]): AvailabilityWindow[] {
+  return workingWindows.map((window) => ({
+    startsAt: fromSofiaLocalDateTime(date, window.opensAt.hour, window.opensAt.minute),
+    endsAt: fromSofiaLocalDateTime(date, window.closesAt.hour, window.closesAt.minute),
+  }));
 }
 
 function getUtcDateParts(value: Date) {

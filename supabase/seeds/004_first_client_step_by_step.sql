@@ -37,7 +37,7 @@ on conflict (e164) do update set assistant_id = excluded.assistant_id, sip_uri =
 
 -- 5. Calendar settings
 insert into public.calendar_settings (organization_id, provider, timezone, booking_enabled, slot_minutes, buffer_minutes, min_notice_minutes)
-select organizations.id, 'manual', 'Europe/Sofia', false, 60, 15, 120
+select organizations.id, 'manual', 'Europe/Sofia', false, 60, 0, 120
 from public.organizations
 where organizations.slug = 'demo-hvac-company'
 on conflict (organization_id) do update set timezone = excluded.timezone;

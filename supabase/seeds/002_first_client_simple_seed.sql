@@ -125,7 +125,7 @@ begin
     'Europe/Sofia',
     false,
     60,
-    15,
+    0,
     120
   )
   on conflict (organization_id) do update set timezone = excluded.timezone;

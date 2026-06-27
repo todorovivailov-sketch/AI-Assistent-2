@@ -142,7 +142,7 @@ select
   'Europe/Sofia',
   false,
   60,
-  15,
+  0,
   120
 from seed_org
 on conflict (organization_id) do update set

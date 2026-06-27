@@ -68,7 +68,15 @@
   generic booking prompt, and attached to `check_availability` plus `book_appointment`.
 - Availability flow updated: the assistant now asks for the caller's preferred time
   before checking the calendar, then checks that exact `date` + `time` slot.
-- Local verification: lint OK, build OK, npm audit 0 vulnerabilities.
+- Vapi runtime now uses Soniox `stt-rt-v5` and Google `gemini-3.1-flash-lite`.
+- Generic Vapi prompt was rewritten into a shorter ordered booking flow:
+  request -> day -> exact time -> availability check -> name/phone/location ->
+  booking -> follow-up question -> polite goodbye.
+- Calendar availability precision fixed:
+  requested times are now checked as exact intervals instead of requiring a generated
+  grid slot match, demo `buffer_minutes` is now `0`, and production verification
+  confirmed 2026-06-29 13:00 free, 2026-06-29 15:00 busy, and 2026-06-30 15:30 free.
+- Local verification: availability test OK, lint OK, build OK.
 
 ## Building Next
 
