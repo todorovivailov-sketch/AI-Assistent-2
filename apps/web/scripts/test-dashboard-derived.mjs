@@ -10,6 +10,29 @@ if (!existsSync(sourcePath)) {
 }
 
 const source = readFileSync(sourcePath, "utf8");
+const typeProgram = ts.createProgram([sourcePath], {
+  module: ts.ModuleKind.ESNext,
+  moduleResolution: ts.ModuleResolutionKind.Bundler,
+  target: ts.ScriptTarget.ES2022,
+  strict: true,
+  noEmit: true,
+  skipLibCheck: true,
+  baseUrl: process.cwd(),
+  paths: {
+    "@/*": ["src/*"],
+  },
+});
+const typeDiagnostics = ts.getPreEmitDiagnostics(typeProgram);
+
+if (typeDiagnostics.length > 0) {
+  const message = ts.formatDiagnosticsWithColorAndContext(typeDiagnostics, {
+    getCanonicalFileName: (fileName) => fileName,
+    getCurrentDirectory: process.cwd,
+    getNewLine: () => "\n",
+  });
+  throw new Error(message);
+}
+
 const compiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2022,
@@ -69,24 +92,24 @@ const calls = [
 
 const appointments = [
   {
-    id: "appointment-confirmed",
+    id: "appointment-completed",
     customerName: "Иван Петров",
     customerPhone: "+359881234567",
     serviceType: "Консултация",
-    status: "confirmed",
+    status: "completed",
     startsAt: "2026-06-30T07:00:00.000Z",
     endsAt: "2026-06-30T07:30:00.000Z",
     createdAt: "2026-06-28T09:30:00.000Z",
   },
   {
-    id: "appointment-requested",
+    id: "appointment-confirmed",
     customerName: "Иван Петров",
     customerPhone: "+359 88 123 4567",
     serviceType: "Последващ разговор",
-    status: "requested",
+    status: "confirmed",
     startsAt: "2026-07-02T08:00:00.000Z",
     endsAt: "2026-07-02T08:30:00.000Z",
-    createdAt: "2026-06-28T09:35:00.000Z",
+    createdAt: "2026-07-01T13:45:00.000Z",
   },
   {
     id: "appointment-uncertain",
@@ -131,7 +154,10 @@ assert.equal(
   "unknown appointments should create needs_confirmation inbox items"
 );
 
-const customers = deriveCustomers({ calls, appointments });
+const customers = deriveCustomers(
+  { calls, appointments },
+  { now: "2026-07-01T00:00:00.000Z" }
+);
 const ivan = customers.find((customer) => customer.phone === "+359881234567");
 
 assert.deepEqual(
@@ -145,13 +171,13 @@ assert.deepEqual(
     status: "Има записан час",
     nextAppointment: {
       id: "appointment-confirmed",
-      startsAt: "2026-06-30T07:00:00.000Z",
+      startsAt: "2026-07-02T08:00:00.000Z",
       status: "Потвърден",
-      serviceType: "Консултация",
+      serviceType: "Последващ разговор",
     },
-    lastInteractionLabel: "Последно обаждане: 28.06.2026 г., 12:05",
+    lastInteractionLabel: "Последна промяна: 01.07.2026 г., 16:45",
   },
-  "customers should be grouped by normalized phone with appointments, tags, status, next appointment, and last interaction"
+  "customers should use the next future appointment and label the newest call or appointment interaction"
 );
 
 assert.deepEqual(

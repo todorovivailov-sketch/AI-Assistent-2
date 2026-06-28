@@ -1,7 +1,9 @@
+import type { Database } from "@/types/database";
+
 type DateLike = string | Date | null | undefined;
 type UnknownRecord = Record<string, unknown>;
 
-export type DashboardStructuredData = Record<string, unknown>;
+export type DashboardStructuredData = unknown;
 
 export type DashboardCallInput = {
   id: string;
@@ -47,6 +49,15 @@ export type DashboardDerivationInput = {
   calls: DashboardCallInput[];
   appointments: DashboardAppointmentInput[];
 };
+
+export type DashboardDerivationOptions = {
+  now?: DateLike;
+};
+
+type AssertAssignable<T extends DashboardCallInput> = T;
+export type SupabaseCallRowDashboardInputCompatibility = AssertAssignable<
+  Database["public"]["Tables"]["calls"]["Row"]
+>;
 
 export type DashboardInboxItemType = "human_requested" | "needs_confirmation";
 export type DashboardInboxItemPriority = "high" | "medium" | "low";
@@ -186,7 +197,10 @@ export function deriveInboxItems(input: DashboardDerivationInput): DashboardInbo
   return items.sort(compareInboxItems);
 }
 
-export function deriveCustomers(input: DashboardDerivationInput): DashboardCustomer[] {
+export function deriveCustomers(
+  input: DashboardDerivationInput,
+  options: DashboardDerivationOptions = {}
+): DashboardCustomer[] {
   const customers = new Map<string, CustomerAccumulator>();
 
   for (const call of input.calls) {
@@ -222,7 +236,7 @@ export function deriveCustomers(input: DashboardDerivationInput): DashboardCusto
 
   return Array.from(customers.values())
     .map((customer) => {
-      const nextAppointment = getNextAppointment(customer.appointments);
+      const nextAppointment = getNextAppointment(customer.appointments, options.now);
       const tags = [...customer.serviceTags];
       if (customer.needsHuman) tags.push("Иска човек");
       if (customer.needsConfirmation) tags.push("Иска потвърждение");
@@ -378,12 +392,16 @@ function isBooking(appointment: DashboardAppointmentInput): boolean {
   return BOOKING_STATUSES.has(readLower(appointment.status)) && !CANCELLED_STATUSES.has(readLower(appointment.status));
 }
 
-function getNextAppointment(appointments: DashboardAppointmentInput[]): DashboardCustomerNextAppointment | null {
+function getNextAppointment(
+  appointments: DashboardAppointmentInput[],
+  nowValue: DateLike
+): DashboardCustomerNextAppointment | null {
+  const now = toDate(nowValue);
   const candidates = appointments
     .filter((appointment) => !CANCELLED_STATUSES.has(readLower(appointment.status)))
     .map((appointment) => ({ appointment, startsAt: getAppointmentStart(appointment), date: toDate(getAppointmentStart(appointment)) }))
     .filter((candidate): candidate is { appointment: DashboardAppointmentInput; startsAt: string; date: Date } =>
-      Boolean(candidate.startsAt && candidate.date)
+      Boolean(candidate.startsAt && candidate.date && (!now || candidate.date.getTime() >= now.getTime()))
     )
     .sort((left, right) => left.date.getTime() - right.date.getTime());
 
@@ -414,9 +432,11 @@ function getLastInteractionLabel(
   nextAppointment: DashboardCustomerNextAppointment | null
 ): string {
   const lastCall = latestDate(customer.callDates);
-  if (lastCall) return `Последно обаждане: ${formatDateTime(lastCall)}`;
-
   const lastAppointment = latestDate(customer.appointmentDates);
+  if (lastCall && dateTime(lastCall) >= dateTime(lastAppointment)) {
+    return `Последно обаждане: ${formatDateTime(lastCall)}`;
+  }
+
   if (lastAppointment) return `Последна промяна: ${formatDateTime(lastAppointment)}`;
 
   if (nextAppointment) return `Следващ час: ${formatDateTime(nextAppointment.startsAt)}`;
