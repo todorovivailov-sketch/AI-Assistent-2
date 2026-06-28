@@ -19,6 +19,7 @@ next-env.d.ts
 
 # local runtime archive
 archive/
+.superpowers/
 
 # logs
 *.log
