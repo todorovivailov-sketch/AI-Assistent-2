@@ -202,6 +202,7 @@ export function deriveCustomers(
   options: DashboardDerivationOptions = {}
 ): DashboardCustomer[] {
   const customers = new Map<string, CustomerAccumulator>();
+  const now = options.now ?? new Date();
 
   for (const call of input.calls) {
     const phone = normalizePhone(getCallDisplayPhone(call));
@@ -236,7 +237,7 @@ export function deriveCustomers(
 
   return Array.from(customers.values())
     .map((customer) => {
-      const nextAppointment = getNextAppointment(customer.appointments, options.now);
+      const nextAppointment = getNextAppointment(customer.appointments, now);
       const tags = [...customer.serviceTags];
       if (customer.needsHuman) tags.push("Иска човек");
       if (customer.needsConfirmation) tags.push("Иска потвърждение");

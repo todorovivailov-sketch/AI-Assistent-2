@@ -180,6 +180,38 @@ assert.deepEqual(
   "customers should use the next future appointment and label the newest call or appointment interaction"
 );
 
+const defaultNowCustomers = deriveCustomers({
+  calls: [],
+  appointments: [
+    {
+      id: "default-past-appointment",
+      customerName: "Тест Клиент",
+      customerPhone: "+359 88 000 0000",
+      serviceType: "Минала среща",
+      status: "completed",
+      startsAt: "2000-01-01T08:00:00.000Z",
+      endsAt: "2000-01-01T08:30:00.000Z",
+      createdAt: "2000-01-01T07:30:00.000Z",
+    },
+    {
+      id: "default-future-appointment",
+      customerName: "Тест Клиент",
+      customerPhone: "+359 88 000 0000",
+      serviceType: "Бъдеща среща",
+      status: "confirmed",
+      startsAt: "2999-01-01T08:00:00.000Z",
+      endsAt: "2999-01-01T08:30:00.000Z",
+      createdAt: "2998-12-31T07:30:00.000Z",
+    },
+  ],
+});
+
+assert.equal(
+  defaultNowCustomers[0]?.nextAppointment?.id,
+  "default-future-appointment",
+  "deriveCustomers without options should still ignore historical next appointment candidates"
+);
+
 assert.deepEqual(
   calculateBookingFunnel({ calls, appointments }),
   {
