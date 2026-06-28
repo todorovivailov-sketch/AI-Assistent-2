@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:availability": "node ./scripts/test-availability-logic.mjs"
+    "test:availability": "node ./scripts/test-availability-logic.mjs",
+    "test:dashboard": "node ./scripts/test-dashboard-derived.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.0",
