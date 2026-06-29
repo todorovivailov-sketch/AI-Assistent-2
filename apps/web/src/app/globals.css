@@ -63,3 +63,69 @@ textarea {
 ::selection {
   background: rgba(15, 118, 110, 0.18);
 }
+
+/* Premium UI/UX Animations & Utilities */
+@keyframes glow-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+}
+
+@keyframes glow-pulse-blue {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--info) 50%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--info) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--info) 0%, transparent);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s infinite;
+}
+
+.animate-glow-pulse-blue {
+  animation: glow-pulse-blue 2s infinite;
+}
+
+.bg-stripes {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    #e5e7eb 10px,
+    #e5e7eb 20px
+  );
+}
+
+@media (prefers-color-scheme: dark) {
+  .bg-stripes {
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      #1f2937 10px,
+      #1f2937 20px
+    );
+  }
+}
+
+.dark .bg-stripes {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    #1f2937 10px,
+    #1f2937 20px
+  );
+}
+
