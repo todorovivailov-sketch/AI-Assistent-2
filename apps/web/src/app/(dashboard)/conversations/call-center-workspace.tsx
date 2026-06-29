@@ -473,20 +473,23 @@ function CallDetailsPanel({ call }: CallDetailsPanelProps) {
           </h4>
           <div className="space-y-3">
             <div>
-              <label htmlFor="sms-template-select" className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Избор на шаблон</label>
-              <select
-                id="sms-template-select"
-                value={selectedTemplateId}
-                onChange={(e) => handleTemplateChange(e.target.value)}
-                className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-teal-500 text-[var(--foreground)]"
-              >
-                <option value="">-- Изберете шаблон --</option>
+              <span className="block text-xs font-medium text-[var(--ink-soft)] mb-2">Бързи шаблони</span>
+              <div className="flex flex-wrap gap-2">
                 {SMS_TEMPLATES.map((t) => (
-                  <option key={t.id} value={t.id}>
+                  <button
+                    key={t.id}
+                    onClick={() => handleTemplateChange(t.id)}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium border transition-all duration-200 cursor-pointer active:scale-95 ${
+                      selectedTemplateId === t.id
+                        ? "bg-teal-600 text-white border-teal-600 shadow-sm"
+                        : "bg-[var(--surface)] text-[var(--ink-soft)] border-[var(--line)] hover:border-teal-500/50 hover:text-teal-700 dark:hover:text-teal-300"
+                    }`}
+                  >
+                    <MessageSquare size={12} />
                     {t.label}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
 
             <div>
@@ -579,7 +582,7 @@ export function CallCenterWorkspace({ conversations }: CallCenterWorkspaceProps)
   };
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[380px_1fr] h-[calc(100vh-170px)] min-h-[600px]">
+    <div className="grid grid-cols-1 gap-0 lg:grid-cols-[380px_auto_1fr] h-[calc(100vh-170px)] min-h-[600px]">
       {/* LEFT COLUMN: Call List */}
       <div className="flex flex-col h-full rounded-xl border border-[var(--line)] bg-[var(--surface)] shadow-sm overflow-hidden">
         {/* Search Header */}
@@ -682,6 +685,9 @@ export function CallCenterWorkspace({ conversations }: CallCenterWorkspaceProps)
           )}
         </div>
       </div>
+
+      {/* Gradient Divider */}
+      <div className="hidden lg:block w-px bg-gradient-to-b from-transparent via-[var(--line)] to-transparent" />
 
       {/* RIGHT COLUMN: Details Workspace */}
       <div className="flex flex-col h-full rounded-xl border border-[var(--line)] bg-[var(--surface)] shadow-sm overflow-hidden">
