@@ -1,7 +1,7 @@
 import { AlertTriangle, CalendarCheck, CheckCircle2, PhoneCall } from "lucide-react";
 import Link from "next/link";
 
-import { MetricCard } from "@/components/metric-card";
+import { DashboardTimeline } from "@/components/dashboard-timeline";
 import { PageHeader } from "@/components/page-header";
 import { SectionPanel } from "@/components/section-panel";
 import { StatusBadge } from "@/components/status-badge";
@@ -34,35 +34,86 @@ export default async function CommandCenterPage() {
         }
       />
 
-      <section className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Обаждания"
-          value={String(data.metrics.calls24h)}
-          detail="последните 24 часа"
-          icon={PhoneCall}
-          tone="teal"
-        />
-        <MetricCard
-          label="Часове днес"
-          value={String(data.metrics.appointmentsToday)}
-          detail="потвърдени и заявени"
-          icon={CalendarCheck}
-          tone="blue"
-        />
-        <MetricCard
-          label="За преглед"
-          value={String(data.metrics.attentionItems)}
-          detail="задачи от разговори и часове"
-          icon={AlertTriangle}
-          tone="amber"
-        />
-        <MetricCard
-          label="Booking rate"
-          value={`${data.metrics.bookingRate}%`}
-          detail="записи спрямо разговори"
-          icon={CheckCircle2}
-          tone="teal"
-        />
+      <section className="grid min-w-0 gap-4 grid-cols-1 md:grid-cols-3">
+        {/* Card 1: Обаждания (col-span-2) */}
+        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-teal-500/30 md:col-span-2 col-span-1 bg-gradient-to-br from-teal-500/5 via-[var(--surface)] to-[var(--surface)]">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold tracking-wider uppercase text-[var(--ink-soft)]">
+                Обаждания
+              </p>
+              <h3 className="mt-2 text-4xl font-bold font-mono tracking-tight bg-gradient-to-r from-teal-600 to-teal-400 bg-clip-text text-transparent dark:from-teal-400 dark:to-teal-200">
+                {data.metrics.calls24h}
+              </h3>
+            </div>
+            <span className="flex size-10 items-center justify-center rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400">
+              <PhoneCall size={20} aria-hidden="true" />
+            </span>
+          </div>
+          <p className="mt-4 text-xs font-medium text-[var(--ink-soft)]">
+            последните 24 часа
+          </p>
+        </div>
+
+        {/* Card 2: Часове днес (col-span-1) */}
+        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-blue-500/30 col-span-1 bg-gradient-to-br from-blue-500/5 via-[var(--surface)] to-[var(--surface)]">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold tracking-wider uppercase text-[var(--ink-soft)]">
+                Часове днес
+              </p>
+              <h3 className="mt-2 text-4xl font-bold font-mono tracking-tight bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent dark:from-blue-400 dark:to-blue-200">
+                {data.metrics.appointmentsToday}
+              </h3>
+            </div>
+            <span className="flex size-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              <CalendarCheck size={20} aria-hidden="true" />
+            </span>
+          </div>
+          <p className="mt-4 text-xs font-medium text-[var(--ink-soft)]">
+            потвърдени и заявени
+          </p>
+        </div>
+
+        {/* Card 3: За преглед (col-span-1) */}
+        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-amber-500/30 col-span-1 bg-gradient-to-br from-amber-500/5 via-[var(--surface)] to-[var(--surface)]">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold tracking-wider uppercase text-[var(--ink-soft)]">
+                За преглед
+              </p>
+              <h3 className="mt-2 text-4xl font-bold font-mono tracking-tight bg-gradient-to-r from-amber-600 to-amber-400 bg-clip-text text-transparent dark:from-amber-400 dark:to-amber-200">
+                {data.metrics.attentionItems}
+              </h3>
+            </div>
+            <span className="flex size-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <AlertTriangle size={20} aria-hidden="true" />
+            </span>
+          </div>
+          <p className="mt-4 text-xs font-medium text-[var(--ink-soft)]">
+            задачи от разговори и часове
+          </p>
+        </div>
+
+        {/* Card 4: Booking rate (col-span-2) */}
+        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-emerald-500/30 md:col-span-2 col-span-1 bg-gradient-to-br from-emerald-500/5 via-[var(--surface)] to-[var(--surface)]">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold tracking-wider uppercase text-[var(--ink-soft)]">
+                Booking rate
+              </p>
+              <h3 className="mt-2 text-4xl font-bold font-mono tracking-tight bg-gradient-to-r from-emerald-600 to-emerald-400 bg-clip-text text-transparent dark:from-emerald-400 dark:to-emerald-200">
+                {data.metrics.bookingRate}%
+              </h3>
+            </div>
+            <span className="flex size-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 size={20} aria-hidden="true" />
+            </span>
+          </div>
+          <p className="mt-4 text-xs font-medium text-[var(--ink-soft)]">
+            записи спрямо разговори
+          </p>
+        </div>
       </section>
 
       <section className="grid min-w-0 gap-5 xl:grid-cols-[1.15fr_0.85fr]">
@@ -108,28 +159,8 @@ export default async function CommandCenterPage() {
             </Link>
           }
         >
-          <div className="divide-y divide-[var(--line)]">
-            {data.nextAppointments.map((appointment) => (
-              <Link
-                key={appointment.id}
-                href={`/appointments?appointment=${appointment.id}`}
-                className="block px-4 py-4 text-sm hover:bg-[var(--surface-muted)]"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="truncate font-medium">{appointment.customerName}</div>
-                    <div className="mt-1 truncate text-[var(--ink-soft)]">{appointment.serviceType}</div>
-                    <div className="mt-2 font-mono text-xs text-[var(--ink-soft)]">
-                      {appointment.startsAt ? formatDateTime(appointment.startsAt) : "Няма час"}
-                    </div>
-                  </div>
-                  <StatusBadge value={appointment.status} />
-                </div>
-              </Link>
-            ))}
-            {data.nextAppointments.length === 0 ? (
-              <div className="px-4 py-8 text-sm text-[var(--ink-soft)]">Няма предстоящи часове.</div>
-            ) : null}
+          <div className="px-4 py-4">
+            <DashboardTimeline appointments={data.nextAppointments} />
           </div>
         </SectionPanel>
       </section>
@@ -161,14 +192,4 @@ export default async function CommandCenterPage() {
       </section>
     </>
   );
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("bg-BG", {
-    timeZone: "Europe/Sofia",
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
 }
