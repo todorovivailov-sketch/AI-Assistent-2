@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 
 const navItems = [
   { href: "/", label: "Работно табло", icon: LayoutDashboard },
@@ -28,6 +28,14 @@ const navItems = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [activeCall, setActiveCall] = useState<{ id: string; phone: string } | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setActiveCall({ id: "call-live-101", phone: "+359 88 923 3722" });
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
@@ -71,6 +79,28 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="truncate text-sm font-semibold">AI Receptionist</div>
               <div className="truncate font-mono text-xs text-[var(--ink-soft)]">+35924372749</div>
             </div>
+
+            {activeCall && (
+              <div className="flex items-center gap-3 rounded-full border border-rose-500/20 bg-rose-500/5 dark:bg-rose-500/10 px-3.5 py-1.5 text-xs text-rose-600 dark:text-rose-400 shadow-sm backdrop-blur-sm animate-pulse">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500"></span>
+                </span>
+                <span className="font-medium whitespace-nowrap">
+                  Активно обаждане: <span className="font-bold">{activeCall.phone}</span>
+                </span>
+                <button
+                  onClick={() => {
+                    alert(`Поемане на обаждането с ${activeCall.phone}... Разговорът се прехвърля към вашия телефон.`);
+                    setActiveCall(null);
+                  }}
+                  className="rounded-full bg-gradient-to-r from-rose-600 to-red-500 px-3 py-1 font-semibold text-white shadow-sm hover:from-rose-700 hover:to-red-600 active:scale-95 transition cursor-pointer"
+                >
+                  Поеми разговора
+                </button>
+              </div>
+            )}
+
             <div className="flex items-center gap-2">
               <span className="hidden h-8 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--ink-soft)] sm:inline-flex">
                 AI свързан
