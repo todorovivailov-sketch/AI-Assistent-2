@@ -99,7 +99,7 @@ export function CalendarToolbar({ previousWeek, nextWeek }: CalendarToolbarProps
         </button>
 
         {isPopoverOpen && (
-          <div className="absolute right-0 mt-2 w-48 rounded-md border border-[var(--line)] bg-[var(--surface)] p-1 shadow-lg z-50 transition duration-150 ease-out">
+          <div className="absolute right-0 mt-2 w-48 rounded-md border border-[var(--line)] bg-[var(--surface)]/80 backdrop-blur-md p-1 shadow-xl shadow-teal-500/5 z-50 transition duration-150 ease-out">
             <div className="px-2 py-1.5 text-xs font-semibold text-[var(--ink-soft)] border-b border-[var(--line)] mb-1">
               Изберете време на закъснение:
             </div>
@@ -147,13 +147,13 @@ export function CalendarToolbar({ previousWeek, nextWeek }: CalendarToolbarProps
       </button>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div 
             role="dialog" 
             aria-modal="true" 
             aria-labelledby="modal-title" 
             aria-describedby="modal-desc" 
-            className="w-full max-w-md rounded-lg border border-[var(--line)] bg-[var(--surface)] p-6 shadow-xl transition duration-200 ease-out"
+            className="w-full max-w-md rounded-lg border border-[var(--line)] bg-[var(--surface)]/90 backdrop-blur-lg p-6 shadow-2xl shadow-teal-500/5 transition duration-200 ease-out"
           >
             <div className="flex items-center gap-2 mb-4">
               <div className="p-2 bg-rose-50 dark:bg-rose-950/30 rounded-md text-rose-500">

@@ -1,4 +1,4 @@
-import { Clock, MapPin, Phone } from "lucide-react";
+import { Clock, Lock, MapPin, Phone } from "lucide-react";
 import Link from "next/link";
 
 import AppointmentDrawer from "@/components/appointment-drawer";
@@ -186,14 +186,21 @@ function AppointmentBlock({
   selected: boolean;
 }) {
   const position = getAppointmentPosition(appointment);
+  const isBlocked = [appointment.title, appointment.serviceType].some((val) =>
+    ["block", "блокиран", "обедна", "почивка"].some((term) =>
+      val?.toLowerCase().includes(term)
+    )
+  );
 
   return (
     <Link
       href={`/appointments?appointment=${appointment.id}`}
       className={`absolute left-2 right-2 overflow-hidden rounded-md border px-2 py-2 text-xs shadow-sm block hover:opacity-90 transition ${
-        appointment.status === "confirmed"
-          ? "border-teal-300 bg-teal-50 text-teal-950 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-100"
-          : "border-blue-300 bg-blue-50 text-blue-950 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100"
+        isBlocked
+          ? "border-rose-300 bg-rose-50/50 text-rose-950 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-100 bg-stripes"
+          : appointment.status === "confirmed"
+            ? "border-teal-300 bg-teal-50 text-teal-950 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-100"
+            : "border-blue-300 bg-blue-50 text-blue-950 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100"
       } ${selected ? "ring-2 ring-teal-700 ring-offset-2 ring-offset-[var(--surface)]" : ""}`}
       style={{
         top: position.top,
@@ -202,7 +209,12 @@ function AppointmentBlock({
       }}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="font-mono">{formatAppointmentTime(appointment)}</span>
+        <span className="font-mono flex items-center gap-1">
+          {formatAppointmentTime(appointment)}
+          {isBlocked && (
+            <Lock size={10} className="text-rose-500 dark:text-rose-400" aria-hidden="true" />
+          )}
+        </span>
         {appointment.hasGoogleEvent ? <span className="font-mono text-[10px] opacity-70">GCal</span> : null}
       </div>
       <div className="mt-1 truncate font-semibold">{appointment.customerName}</div>
