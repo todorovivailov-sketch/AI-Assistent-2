@@ -64,6 +64,19 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
     };
   }, [isPlaying, speed]);
 
+  // Close drawer on ESC key
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        router.push("/appointments");
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [router]);
+
   if (!appointment) return null;
 
   const formatAudioTime = (secs: number) => {
@@ -100,7 +113,8 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
       });
 
       if (!response.ok) {
-        throw new Error("Неуспешно изтриване на часа.");
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Неуспешно изтриване на часа.");
       }
 
       alert("Часът е анулиран успешно.");
@@ -193,19 +207,25 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
 
       <div className="fixed inset-y-0 right-0 flex max-w-full pl-10">
         {/* Drawer Panel */}
-        <div className="w-screen max-w-md transform bg-[var(--surface)] text-[var(--foreground)] border-l border-[var(--line)] shadow-2xl transition-transform duration-300 ease-out flex flex-col h-full">
+        <div 
+          role="dialog" 
+          aria-modal="true" 
+          aria-labelledby="drawer-title" 
+          className="w-screen max-w-md transform bg-[var(--surface)] text-[var(--foreground)] border-l border-[var(--line)] shadow-2xl transition-transform duration-300 ease-out flex flex-col h-full"
+        >
           
           {/* Header */}
           <div className="border-b border-[var(--line)] px-6 py-5 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg font-bold tracking-tight">{appointment.customerName}</h2>
+                <h2 id="drawer-title" className="text-lg font-bold tracking-tight">{appointment.customerName}</h2>
                 <StatusBadge value={appointment.status} />
               </div>
               <p className="mt-1 text-sm text-[var(--ink-soft)] font-medium">{appointment.serviceType}</p>
             </div>
             <Link
               href="/appointments"
+              aria-label="Затвори"
               className="rounded-md p-1.5 text-[var(--ink-soft)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] transition cursor-pointer"
             >
               <X size={20} />
@@ -284,6 +304,7 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setIsPlaying(!isPlaying)}
+                  aria-label={isPlaying ? "Пауза" : "Пусни"}
                   className="flex size-8 shrink-0 items-center justify-center rounded-full bg-teal-600 text-white hover:bg-teal-700 transition cursor-pointer"
                 >
                   {isPlaying ? <Pause size={14} fill="white" /> : <Play size={14} className="ml-0.5" fill="white" />}

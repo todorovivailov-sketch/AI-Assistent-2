@@ -141,7 +141,7 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
         </aside>
       </section>
 
-      {focusedAppointment && <AppointmentDrawer appointment={focusedAppointment} />}
+      {focusedAppointment && <AppointmentDrawer key={focusedAppointment.id} appointment={focusedAppointment} />}
     </>
   );
 }
