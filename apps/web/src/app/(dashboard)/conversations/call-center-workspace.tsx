@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   Search,
@@ -47,6 +47,41 @@ interface TranscriptLine {
   time?: string;
   speaker: string;
   text: string;
+}
+
+function formatDuration(secs: number) {
+  const minutes = Math.floor(secs / 60);
+  const remainder = Math.floor(secs % 60);
+  return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+}
+
+function isAgent(speaker: string) {
+  const s = speaker.toLowerCase();
+  return (
+    s.includes("асистент") ||
+    s.includes("рецепция") ||
+    s.includes("agent") ||
+    s.includes("assistant") ||
+    s.includes("ai") ||
+    s.includes("operator") ||
+    s.includes("оператор")
+  );
+}
+
+function formatDateTime(value: string) {
+  try {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "Неизвестна дата";
+    return new Intl.DateTimeFormat("bg-BG", {
+      timeZone: "Europe/Sofia",
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(d);
+  } catch {
+    return "Неизвестна дата";
+  }
 }
 
 // Simple seed-based pseudo random generator for consistent call waveforms
@@ -152,9 +187,19 @@ function CallDetailsPanel({ call }: CallDetailsPanelProps) {
   const [isMuted, setIsMuted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Pause audio on unmount
+  useEffect(() => {
+    const currentAudio = audioRef.current;
+    return () => {
+      if (currentAudio) {
+        currentAudio.pause();
+      }
+    };
+  }, []);
+
   // Playback timer simulation (fallback when recordingUrl is not set)
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval> | null = null;
     if (isPlaying && !call.recordingUrl) {
       interval = setInterval(() => {
         setCurrentTime((prev) => {
@@ -269,24 +314,7 @@ function CallDetailsPanel({ call }: CallDetailsPanelProps) {
     return parseTranscript(call.transcriptText, getFallbackTranscript(call));
   }, [call]);
 
-  const formatDuration = (secs: number) => {
-    const minutes = Math.floor(secs / 60);
-    const remainder = Math.floor(secs % 60);
-    return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
-  };
 
-  const isAgent = (speaker: string) => {
-    const s = speaker.toLowerCase();
-    return (
-      s.includes("асистент") ||
-      s.includes("рецепция") ||
-      s.includes("agent") ||
-      s.includes("assistant") ||
-      s.includes("ai") ||
-      s.includes("operator") ||
-      s.includes("оператор")
-    );
-  };
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -339,6 +367,7 @@ function CallDetailsPanel({ call }: CallDetailsPanelProps) {
             <div className="flex items-center gap-3">
               <button
                 onClick={togglePlay}
+                aria-label={isPlaying ? "Пауза" : "Възпроизвеждане"}
                 className="w-10 h-10 rounded-full bg-teal-700 hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-700 text-white flex items-center justify-center transition-transform hover:scale-105 shadow-sm outline-none cursor-pointer"
               >
                 {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
@@ -346,6 +375,7 @@ function CallDetailsPanel({ call }: CallDetailsPanelProps) {
 
               <button
                 onClick={cycleSpeed}
+                aria-label="Скорост на възпроизвеждане"
                 className="px-2.5 py-1.5 rounded-lg border border-[var(--line)] bg-[var(--surface)] text-xs font-mono font-medium hover:bg-[var(--surface-muted)] transition-colors outline-none cursor-pointer"
               >
                 {speed}x
@@ -355,6 +385,7 @@ function CallDetailsPanel({ call }: CallDetailsPanelProps) {
             <div className="flex items-center gap-2">
               <button
                 onClick={toggleMute}
+                aria-label={isMuted ? "Включи звука" : "Спри звука"}
                 className="p-1.5 rounded-lg text-[var(--ink-soft)] hover:text-[var(--foreground)] hover:bg-[var(--surface-muted)] transition-colors outline-none cursor-pointer"
               >
                 {isMuted ? <VolumeX className="h-4.5 w-4.5" /> : <Volume2 className="h-4.5 w-4.5" />}
@@ -442,8 +473,9 @@ function CallDetailsPanel({ call }: CallDetailsPanelProps) {
           </h4>
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Избор на шаблон</label>
+              <label htmlFor="sms-template-select" className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Избор на шаблон</label>
               <select
+                id="sms-template-select"
                 value={selectedTemplateId}
                 onChange={(e) => handleTemplateChange(e.target.value)}
                 className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-teal-500 text-[var(--foreground)]"
@@ -458,8 +490,9 @@ function CallDetailsPanel({ call }: CallDetailsPanelProps) {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Съобщение</label>
+              <label htmlFor="sms-message-input" className="block text-xs font-medium text-[var(--ink-soft)] mb-1">Съобщение</label>
               <textarea
+                id="sms-message-input"
                 rows={3}
                 value={smsText}
                 onChange={(e) => setSmsText(e.target.value)}
@@ -485,7 +518,6 @@ function CallDetailsPanel({ call }: CallDetailsPanelProps) {
 }
 
 export function CallCenterWorkspace({ conversations }: CallCenterWorkspaceProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
@@ -493,12 +525,20 @@ export function CallCenterWorkspace({ conversations }: CallCenterWorkspaceProps)
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all"); // all, urgent, missed, recorded
 
-  // Sync selected call with URL query parameter
+  // Sync selected call with URL query parameter locally to prevent network lag on reload
   const selectedIdFromUrl = searchParams.get("call");
+  const [selectedCallId, setSelectedCallId] = useState<string | null>(selectedIdFromUrl);
+  const [prevSelectedId, setPrevSelectedId] = useState<string | null>(selectedIdFromUrl);
+
+  if (selectedIdFromUrl !== prevSelectedId) {
+    setSelectedCallId(selectedIdFromUrl);
+    setPrevSelectedId(selectedIdFromUrl);
+  }
+
   const selectedCall = useMemo(() => {
-    if (!selectedIdFromUrl) return null;
-    return conversations.find((c) => c.id === selectedIdFromUrl) || null;
-  }, [selectedIdFromUrl, conversations]);
+    if (!selectedCallId) return null;
+    return conversations.find((c) => c.id === selectedCallId) || null;
+  }, [selectedCallId, conversations]);
 
   // Filter conversations
   const filteredConversations = useMemo(() => {
@@ -532,20 +572,10 @@ export function CallCenterWorkspace({ conversations }: CallCenterWorkspaceProps)
   }, [conversations, searchQuery, activeTab]);
 
   const selectCall = (call: DashboardConversation) => {
+    setSelectedCallId(call.id);
     const params = new URLSearchParams(searchParams.toString());
     params.set("call", call.id);
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  };
-
-  // Formatting helpers
-  const formatDateTime = (value: string) => {
-    return new Intl.DateTimeFormat("bg-BG", {
-      timeZone: "Europe/Sofia",
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(value));
+    window.history.pushState(null, "", `${pathname}?${params.toString()}`);
   };
 
   return (
