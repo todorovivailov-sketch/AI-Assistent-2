@@ -310,10 +310,10 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
                   {isPlaying ? <Pause size={14} fill="white" /> : <Play size={14} className="ml-0.5" fill="white" />}
                 </button>
 
-                {/* Progress bar */}
+                {/* Waveform visualizer */}
                 <div className="flex-1 space-y-1">
                   <div
-                    className="relative w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden cursor-pointer"
+                    className="flex items-end gap-[3px] h-8 w-full cursor-pointer"
                     onClick={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect();
                       const clickX = e.clientX - rect.left;
@@ -321,10 +321,22 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
                       setCurrentTime(Math.floor(percentage * duration));
                     }}
                   >
-                    <div
-                      className="absolute top-0 left-0 h-full bg-teal-600 transition-all duration-100"
-                      style={{ width: `${(currentTime / duration) * 100}%` }}
-                    />
+                    {[25,40,20,50,75,30,45,60,35,20,55,70,80,45,30,60,40,25,50,65,30,45,20,35].map((amp, i, arr) => {
+                      const progress = currentTime / duration;
+                      const barProgress = i / arr.length;
+                      const isActive = barProgress <= progress;
+                      return (
+                        <div
+                          key={i}
+                          className={`flex-1 rounded-sm transition-colors duration-150 ${
+                            isActive
+                              ? "bg-teal-600 dark:bg-teal-400"
+                              : "bg-slate-300/60 dark:bg-slate-600/40"
+                          }`}
+                          style={{ height: `${amp}%` }}
+                        />
+                      );
+                    })}
                   </div>
                   <div className="flex justify-between text-[10px] font-mono text-[var(--ink-soft)]">
                     <span>{formatAudioTime(currentTime)}</span>
@@ -338,27 +350,42 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--ink-soft)]">Транскрипция от AI асистента</h3>
               <div className="space-y-3 rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] p-4 max-h-[300px] overflow-y-auto">
-                {transcript.map((bubble, i) => (
-                  <div
-                    key={i}
-                    className={`flex flex-col max-w-[85%] ${
-                      bubble.sender === "customer" ? "ml-auto items-end" : "mr-auto items-start"
-                    }`}
-                  >
-                    <span className="text-[10px] text-[var(--ink-soft)] font-semibold mb-0.5 uppercase tracking-wide">
-                      {bubble.sender === "customer" ? "Клиент" : "Асистент"}
-                    </span>
+                {transcript.map((bubble, i) => {
+                  const isCustomer = bubble.sender === "customer";
+                  const avatar = isCustomer ? (
+                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200 border border-teal-300/30 text-xs font-bold">
+                      {appointment.customerName?.charAt(0)?.toUpperCase() || "К"}
+                    </div>
+                  ) : (
+                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-600 to-emerald-600 text-white text-[10px] font-bold">
+                      AI
+                    </div>
+                  );
+                  return (
                     <div
-                      className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-                        bubble.sender === "customer"
-                          ? "bg-teal-600 text-white rounded-tr-none"
-                          : "bg-[var(--surface)] text-[var(--foreground)] border border-[var(--line)] rounded-tl-none"
+                      key={i}
+                      className={`flex items-end gap-2 max-w-[88%] ${
+                        isCustomer ? "ml-auto flex-row-reverse" : "mr-auto"
                       }`}
                     >
-                      {bubble.text}
+                      {avatar}
+                      <div className="flex flex-col">
+                        <span className={`text-[10px] text-[var(--ink-soft)] font-semibold mb-0.5 uppercase tracking-wide ${isCustomer ? "text-right" : ""}`}>
+                          {isCustomer ? "Клиент" : "Асистент"}
+                        </span>
+                        <div
+                          className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                            isCustomer
+                              ? "bg-teal-600 text-white rounded-tr-none"
+                              : "bg-[var(--surface)] text-[var(--foreground)] border border-[var(--line)] rounded-tl-none"
+                          }`}
+                        >
+                          {bubble.text}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
