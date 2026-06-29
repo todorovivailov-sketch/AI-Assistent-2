@@ -32,7 +32,7 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
   return (
     <>
       <PageHeader
-        eyebrow="Calendar"
+        eyebrow="Часове и заетост"
         title="Календар"
         actions={
           <>

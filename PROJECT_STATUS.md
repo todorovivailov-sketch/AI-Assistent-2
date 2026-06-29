@@ -77,6 +77,9 @@
   grid slot match, demo `buffer_minutes` is now `0`, and production verification
   confirmed 2026-06-29 13:00 free, 2026-06-29 15:00 busy, and 2026-06-30 15:30 free.
 - Local verification: availability test OK, lint OK, build OK.
+- SaaS dashboard IA implementation added:
+  Работно табло, Задачи, Календар, Клиенти, Разговори, Асистент, Отчети, and Настройки.
+  Old Calls and Leads routes now redirect to Conversations and Customers.
 
 ## Building Next
 
