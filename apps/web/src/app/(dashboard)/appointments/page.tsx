@@ -1,5 +1,7 @@
 import { Clock, MapPin, Phone } from "lucide-react";
+import Link from "next/link";
 
+import AppointmentDrawer from "@/components/appointment-drawer";
 import { CalendarToolbar } from "@/components/calendar-toolbar";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
@@ -138,6 +140,8 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
           ) : null}
         </aside>
       </section>
+
+      {focusedAppointment && <AppointmentDrawer appointment={focusedAppointment} />}
     </>
   );
 }
@@ -184,8 +188,9 @@ function AppointmentBlock({
   const position = getAppointmentPosition(appointment);
 
   return (
-    <div
-      className={`absolute left-2 right-2 overflow-hidden rounded-md border px-2 py-2 text-xs shadow-sm ${
+    <Link
+      href={`/appointments?appointment=${appointment.id}`}
+      className={`absolute left-2 right-2 overflow-hidden rounded-md border px-2 py-2 text-xs shadow-sm block hover:opacity-90 transition ${
         appointment.status === "confirmed"
           ? "border-teal-300 bg-teal-50 text-teal-950 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-100"
           : "border-blue-300 bg-blue-50 text-blue-950 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100"
@@ -202,7 +207,7 @@ function AppointmentBlock({
       </div>
       <div className="mt-1 truncate font-semibold">{appointment.customerName}</div>
       <div className="mt-0.5 truncate opacity-80">{appointment.serviceType}</div>
-    </div>
+    </Link>
   );
 }
 
@@ -214,7 +219,12 @@ function AppointmentListItem({
   selected?: boolean;
 }) {
   return (
-    <div className={`px-4 py-4 ${selected ? "bg-teal-50/70 dark:bg-teal-950/30" : ""}`}>
+    <Link
+      href={`/appointments?appointment=${appointment.id}`}
+      className={`block px-4 py-4 hover:bg-slate-50 dark:hover:bg-[var(--surface-muted)] transition ${
+        selected ? "bg-teal-50/70 dark:bg-teal-950/30 font-medium" : ""
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold">{appointment.customerName}</div>
@@ -236,7 +246,7 @@ function AppointmentListItem({
           <span className="truncate">{appointment.location}</span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
