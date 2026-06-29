@@ -10,15 +10,52 @@ import {
   type DashboardCustomer,
   type DashboardInboxItem,
 } from "@/lib/dashboard/derived";
-import { getCalendarAppointments, type CalendarAppointment } from "@/lib/live-data";
 import { getSupabaseServiceClient } from "@/lib/supabase/service";
 import type { Database, Json } from "@/types/database";
 
 type JsonRecord = Record<string, Json | undefined>;
+type OrganizationRow = Pick<
+  Database["public"]["Tables"]["organizations"]["Row"],
+  "id" | "name" | "slug" | "timezone"
+>;
 type CallsRow = Pick<
   Database["public"]["Tables"]["calls"]["Row"],
-  "id" | "caller_number" | "disposition" | "status" | "started_at" | "created_at" | "duration_seconds" | "summary" | "structured_data"
+  | "id"
+  | "caller_number"
+  | "disposition"
+  | "status"
+  | "started_at"
+  | "created_at"
+  | "duration_seconds"
+  | "summary"
+  | "structured_data"
 >;
+type AppointmentsRow = Pick<
+  Database["public"]["Tables"]["appointments"]["Row"],
+  | "id"
+  | "call_id"
+  | "title"
+  | "starts_at"
+  | "ends_at"
+  | "status"
+  | "customer_name"
+  | "customer_phone"
+  | "service_type"
+  | "location"
+  | "notes"
+  | "google_calendar_event_id"
+  | "created_at"
+  | "updated_at"
+>;
+
+type DashboardOrganization = {
+  id: string;
+  name: string;
+  slug: string;
+  timezone: string;
+};
+
+type CustomerStatusKey = "active" | "requested" | "needs_confirmation" | "new";
 
 export type DashboardConversation = DashboardCallInput & {
   id: string;
@@ -39,9 +76,13 @@ export type DashboardConversation = DashboardCallInput & {
 
 export type DashboardAppointmentRecord = DashboardAppointmentInput & {
   id: string;
+  callId: string | null;
+  call_id: string | null;
   title: string;
   startsAt: string | null;
   endsAt: string | null;
+  createdAt: string;
+  updatedAt: string;
   status: string;
   customerName: string | null;
   customerPhone: string | null;
@@ -56,7 +97,23 @@ export type DashboardAppointmentListItem = Omit<DashboardAppointmentRecord, "cus
   serviceType: string;
 };
 
+export type DashboardInboxListItem = DashboardInboxItem & {
+  customerLabel: string;
+  phone: string;
+  appointmentTime: string | null;
+  sourceHref: string;
+};
+
+export type DashboardCustomerListItem = DashboardCustomer & {
+  statusKey: CustomerStatusKey;
+  statusLabel: string;
+  nextAppointmentAt: string | null;
+  nextAppointmentStatus: string | null;
+};
+
 export type DashboardAssistantStatus = {
+  organizationId: string | null;
+  organizationName: string;
   assistantId: string | null;
   assistantName: string;
   assistantConnected: boolean;
@@ -82,7 +139,7 @@ export type CommandCenterData = {
     attentionItems: number;
     bookingRate: number;
   };
-  inboxItems: DashboardInboxItem[];
+  inboxItems: DashboardInboxListItem[];
   nextAppointments: DashboardAppointmentListItem[];
   funnel: DashboardBookingFunnel;
   health: DashboardAssistantHealth;
@@ -94,8 +151,11 @@ export type ReportsData = {
   totals: {
     calls: number;
     bookings: number;
+    booked: number;
     qualifiedInteractions: number;
+    qualified: number;
     calendarRelevantRequests: number;
+    calendarChecked: number;
     averageDurationSeconds: number;
     totalDurationSeconds: number;
     bookingRate: number;
@@ -106,21 +166,32 @@ export type ReportsData = {
 
 const DASHBOARD_LOOKBACK_DAYS = 14;
 const APPOINTMENT_LOOKAHEAD_DAYS = 30;
+// Temporary no-auth fallback for the first demo tenant; replace with authenticated organization resolution.
+const DEFAULT_ORGANIZATION_SLUG = "demo-hvac-company";
 const MISSING_NAME_LABEL = "Без име";
 const MISSING_PHONE_LABEL = "Няма телефон";
 const MISSING_SERVICE_LABEL = "Обща заявка";
 const MISSING_SUMMARY_LABEL = "Няма резюме.";
 
 export async function getCommandCenterData(): Promise<CommandCenterData> {
-  const [calls, appointments, assistantStatus, calls24h] = await Promise.all([
-    getDashboardCalls(80),
-    getDashboardAppointments(80),
-    getAssistantStatus(),
-    getCallsCountSince(daysFromNow(-1)),
+  const organization = await getDashboardOrganization();
+  if (!organization) return getEmptyCommandCenterData();
+
+  const since = daysFromNow(-DASHBOARD_LOOKBACK_DAYS);
+  const now = new Date();
+  const [calls, operationalAppointments, reportingAppointments, assistantStatus, calls24h] = await Promise.all([
+    getDashboardCalls(organization.id, 80, { since }),
+    getOperationalAppointments(organization.id, 100),
+    getReportingAppointments(organization.id, 200, since, now),
+    getAssistantStatus(organization),
+    getCallsCountSince(organization.id, daysFromNow(-1)),
   ]);
 
-  const inboxItems = deriveInboxItems({ calls, appointments });
-  const funnel = calculateBookingFunnel({ calls, appointments });
+  const inboxItems = toInboxListItems(
+    deriveInboxItems({ calls, appointments: operationalAppointments }),
+    operationalAppointments
+  );
+  const funnel = calculateBookingFunnel({ calls, appointments: reportingAppointments });
   const health = getAssistantHealth({
     assistantConnected: assistantStatus.assistantConnected,
     calendarConnected: assistantStatus.calendarConnected,
@@ -132,34 +203,59 @@ export async function getCommandCenterData(): Promise<CommandCenterData> {
   return {
     metrics: {
       calls24h,
-      appointmentsToday: appointments.filter(isAppointmentToday).length,
+      appointmentsToday: operationalAppointments.filter(isAppointmentToday).length,
       attentionItems: inboxItems.length,
       bookingRate: getBookingRate(funnel),
     },
     inboxItems: inboxItems.slice(0, 5),
-    nextAppointments: getNextAppointments(appointments, 5),
+    nextAppointments: getNextAppointments(operationalAppointments, 5),
     funnel,
     health,
     assistantStatus,
   };
 }
 
-export async function getInboxData(): Promise<DashboardInboxItem[]> {
-  const [calls, appointments] = await Promise.all([getDashboardCalls(100), getDashboardAppointments(100)]);
-  return deriveInboxItems({ calls, appointments });
+export async function getInboxData(): Promise<DashboardInboxListItem[]> {
+  const organization = await getDashboardOrganization();
+  if (!organization) return [];
+
+  const [calls, appointments] = await Promise.all([
+    getDashboardCalls(organization.id, 100, { since: daysFromNow(-DASHBOARD_LOOKBACK_DAYS) }),
+    getOperationalAppointments(organization.id, 100),
+  ]);
+
+  return toInboxListItems(deriveInboxItems({ calls, appointments }), appointments);
 }
 
-export async function getCustomersData(): Promise<DashboardCustomer[]> {
-  const [calls, appointments] = await Promise.all([getDashboardCalls(200), getDashboardAppointments(200)]);
-  return deriveCustomers({ calls, appointments });
+export async function getCustomersData(): Promise<DashboardCustomerListItem[]> {
+  const organization = await getDashboardOrganization();
+  if (!organization) return [];
+
+  const [calls, appointments] = await Promise.all([
+    getDashboardCalls(organization.id, 200, { since: daysFromNow(-DASHBOARD_LOOKBACK_DAYS) }),
+    getOperationalAppointments(organization.id, 200),
+  ]);
+
+  return deriveCustomers({ calls, appointments }).map(toCustomerListItem);
 }
 
 export async function getConversationsData(limit = 50): Promise<DashboardConversation[]> {
-  return getDashboardCalls(limit);
+  const organization = await getDashboardOrganization();
+  if (!organization) return [];
+
+  return getDashboardCalls(organization.id, limit, { since: daysFromNow(-DASHBOARD_LOOKBACK_DAYS) });
 }
 
 export async function getReportsData(): Promise<ReportsData> {
-  const [calls, appointments] = await Promise.all([getDashboardCalls(200), getDashboardAppointments(200)]);
+  const organization = await getDashboardOrganization();
+  if (!organization) return getEmptyReportsData();
+
+  const since = daysFromNow(-DASHBOARD_LOOKBACK_DAYS);
+  const now = new Date();
+  const [calls, appointments] = await Promise.all([
+    getDashboardCalls(organization.id, 500, { since, until: now }),
+    getReportingAppointments(organization.id, 500, since, now),
+  ]);
   const funnel = calculateBookingFunnel({ calls, appointments });
   const totalDurationSeconds = calls.reduce((sum, call) => sum + (call.durationSeconds ?? 0), 0);
 
@@ -168,8 +264,11 @@ export async function getReportsData(): Promise<ReportsData> {
     totals: {
       calls: funnel.calls,
       bookings: funnel.bookings,
+      booked: funnel.bookings,
       qualifiedInteractions: funnel.qualifiedInteractions,
+      qualified: funnel.qualifiedInteractions,
       calendarRelevantRequests: funnel.calendarRelevantRequests,
+      calendarChecked: funnel.calendarRelevantRequests,
       averageDurationSeconds: average(calls.map((call) => call.durationSeconds)),
       totalDurationSeconds,
       bookingRate: getBookingRate(funnel),
@@ -183,18 +282,53 @@ export async function getReportsData(): Promise<ReportsData> {
 }
 
 export async function getAssistantOverviewData(): Promise<DashboardAssistantStatus> {
-  return getAssistantStatus();
+  const organization = await getDashboardOrganization();
+  return organization ? getAssistantStatus(organization) : getEmptyAssistantStatus(null);
 }
 
-async function getDashboardCalls(limit: number): Promise<DashboardConversation[]> {
+async function getDashboardOrganization(): Promise<DashboardOrganization | null> {
   const supabase = getSupabaseServiceClient();
-  const since = daysFromNow(-DASHBOARD_LOOKBACK_DAYS).toISOString();
+  const configuredSlug =
+    process.env.DASHBOARD_ORGANIZATION_SLUG ??
+    process.env.NEXT_PUBLIC_DASHBOARD_ORGANIZATION_SLUG ??
+    DEFAULT_ORGANIZATION_SLUG;
+
   const { data, error } = await supabase
+    .from("organizations")
+    .select("id, name, slug, timezone")
+    .eq("slug", configuredSlug)
+    .maybeSingle();
+
+  if (error) {
+    logSupabaseError("Dashboard organization query failed", error);
+    return null;
+  }
+
+  if (!data) {
+    console.error(`Dashboard organization not found for slug: ${configuredSlug}`);
+    return null;
+  }
+
+  return toDashboardOrganization(data);
+}
+
+async function getDashboardCalls(
+  organizationId: string,
+  limit: number,
+  options: { since?: Date; until?: Date } = {}
+): Promise<DashboardConversation[]> {
+  const supabase = getSupabaseServiceClient();
+  let query = supabase
     .from("calls")
     .select("id, caller_number, disposition, status, started_at, created_at, duration_seconds, summary, structured_data")
-    .gte("created_at", since)
+    .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
     .limit(clampLimit(limit));
+
+  if (options.since) query = query.gte("created_at", options.since.toISOString());
+  if (options.until) query = query.lt("created_at", options.until.toISOString());
+
+  const { data, error } = await query;
 
   if (error) {
     logSupabaseError("Dashboard calls query failed", error);
@@ -204,24 +338,84 @@ async function getDashboardCalls(limit: number): Promise<DashboardConversation[]
   return (data ?? []).map(toDashboardConversation);
 }
 
-async function getDashboardAppointments(limit: number): Promise<DashboardAppointmentRecord[]> {
+async function getOperationalAppointments(
+  organizationId: string,
+  limit: number
+): Promise<DashboardAppointmentRecord[]> {
   const start = daysFromNow(-DASHBOARD_LOOKBACK_DAYS);
   const end = daysFromNow(APPOINTMENT_LOOKAHEAD_DAYS);
 
-  try {
-    const appointments = await getCalendarAppointments(start, end);
-    return appointments.slice(0, clampLimit(limit)).map(toDashboardAppointment);
-  } catch (error) {
-    logUnknownError("Dashboard appointments query failed", error);
-    return [];
-  }
+  return getDashboardAppointments(organizationId, limit, {
+    mode: "operational",
+    start,
+    end,
+    includeUnscheduledSince: start,
+  });
 }
 
-async function getCallsCountSince(since: Date): Promise<number> {
+async function getReportingAppointments(
+  organizationId: string,
+  limit: number,
+  since: Date,
+  until: Date
+): Promise<DashboardAppointmentRecord[]> {
+  return getDashboardAppointments(organizationId, limit, {
+    mode: "created",
+    start: since,
+    end: until,
+  });
+}
+
+async function getDashboardAppointments(
+  organizationId: string,
+  limit: number,
+  options: {
+    mode: "operational" | "created";
+    start: Date;
+    end: Date;
+    includeUnscheduledSince?: Date;
+  }
+): Promise<DashboardAppointmentRecord[]> {
+  const supabase = getSupabaseServiceClient();
+  let query = supabase
+    .from("appointments")
+    .select(
+      "id, call_id, title, starts_at, ends_at, status, customer_name, customer_phone, service_type, location, notes, google_calendar_event_id, created_at, updated_at"
+    )
+    .eq("organization_id", organizationId)
+    .limit(clampLimit(limit));
+
+  if (options.mode === "created") {
+    query = query
+      .gte("created_at", options.start.toISOString())
+      .lt("created_at", options.end.toISOString())
+      .order("created_at", { ascending: false });
+  } else {
+    const start = options.start.toISOString();
+    const end = options.end.toISOString();
+    const unscheduledSince = (options.includeUnscheduledSince ?? options.start).toISOString();
+    query = query
+      .or(`and(starts_at.gte.${start},starts_at.lt.${end}),and(starts_at.is.null,created_at.gte.${unscheduledSince})`)
+      .order("starts_at", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: false });
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    logSupabaseError("Dashboard appointments query failed", error);
+    return [];
+  }
+
+  return (data ?? []).map(toDashboardAppointment);
+}
+
+async function getCallsCountSince(organizationId: string, since: Date): Promise<number> {
   const supabase = getSupabaseServiceClient();
   const { count, error } = await supabase
     .from("calls")
     .select("id", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
     .gte("created_at", since.toISOString());
 
   if (error) {
@@ -232,30 +426,64 @@ async function getCallsCountSince(since: Date): Promise<number> {
   return count ?? 0;
 }
 
-async function getAssistantStatus(): Promise<DashboardAssistantStatus> {
+async function getAssistantStatus(organization: DashboardOrganization): Promise<DashboardAssistantStatus> {
   const supabase = getSupabaseServiceClient();
   const since24h = daysFromNow(-1).toISOString();
-  const [assistantResult, calendarResult, webhookResult] = await Promise.all([
-    supabase.from("assistants").select("id, name, status, model, voice_provider").limit(1).maybeSingle(),
-    supabase.from("calendar_settings").select("provider, calendar_id, booking_enabled").limit(1).maybeSingle(),
-    supabase
-      .from("webhook_events")
-      .select("provider, event_type, received_at", { count: "exact" })
-      .gte("received_at", since24h)
-      .order("received_at", { ascending: false })
-      .limit(500),
-  ]);
+  const [assistantResult, calendarResult, latestWebhookResult, webhookCountResult, toolCallsResult, toolErrorsResult] =
+    await Promise.all([
+      supabase
+        .from("assistants")
+        .select("id, name, status, model, voice_provider")
+        .eq("organization_id", organization.id)
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("calendar_settings")
+        .select("provider, calendar_id, booking_enabled")
+        .eq("organization_id", organization.id)
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("webhook_events")
+        .select("provider, event_type, received_at")
+        .eq("organization_id", organization.id)
+        .gte("received_at", since24h)
+        .order("received_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("webhook_events")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organization.id)
+        .gte("received_at", since24h),
+      supabase
+        .from("webhook_events")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organization.id)
+        .gte("received_at", since24h)
+        .ilike("event_type", "%tool%"),
+      supabase
+        .from("webhook_events")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organization.id)
+        .gte("received_at", since24h)
+        .or("event_type.ilike.%error%,event_type.ilike.%fail%"),
+    ]);
 
   if (assistantResult.error) logSupabaseError("Assistant status query failed", assistantResult.error);
   if (calendarResult.error) logSupabaseError("Calendar settings query failed", calendarResult.error);
-  if (webhookResult.error) logSupabaseError("Webhook events query failed", webhookResult.error);
+  if (latestWebhookResult.error) logSupabaseError("Latest webhook query failed", latestWebhookResult.error);
+  if (webhookCountResult.error) logSupabaseError("Webhook count query failed", webhookCountResult.error);
+  if (toolCallsResult.error) logSupabaseError("Tool calls count query failed", toolCallsResult.error);
+  if (toolErrorsResult.error) logSupabaseError("Tool errors count query failed", toolErrorsResult.error);
 
   const assistant = assistantResult.error ? null : assistantResult.data;
   const calendar = calendarResult.error ? null : calendarResult.data;
-  const webhookEvents = webhookResult.error ? [] : webhookResult.data ?? [];
-  const latestWebhook = webhookEvents[0] ?? null;
+  const latestWebhook = latestWebhookResult.error ? null : latestWebhookResult.data;
 
   return {
+    organizationId: organization.id,
+    organizationName: organization.name,
     assistantId: assistant?.id ?? null,
     assistantName: assistant?.name ?? "AI асистент",
     assistantConnected: assistant?.status === "active",
@@ -266,12 +494,21 @@ async function getAssistantStatus(): Promise<DashboardAssistantStatus> {
     calendarProvider: calendar?.provider ?? "няма календар",
     calendarId: calendar?.calendar_id ?? null,
     bookingEnabled: calendar?.booking_enabled ?? false,
-    webhookHealthy: !webhookResult.error,
-    webhookEvents24h: webhookResult.error ? 0 : webhookResult.count ?? webhookEvents.length,
+    webhookHealthy: !webhookCountResult.error && !latestWebhookResult.error,
+    webhookEvents24h: webhookCountResult.count ?? 0,
     webhookProvider: latestWebhook?.provider ?? null,
     lastWebhookReceivedAt: latestWebhook?.received_at ?? null,
-    toolCalls24h: webhookEvents.filter((event) => includesLower(event.event_type, "tool")).length,
-    toolErrors24h: webhookEvents.filter(isErrorWebhookEvent).length,
+    toolCalls24h: toolCallsResult.count ?? 0,
+    toolErrors24h: toolErrorsResult.count ?? 0,
+  };
+}
+
+function toDashboardOrganization(row: OrganizationRow): DashboardOrganization {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    timezone: row.timezone,
   };
 }
 
@@ -308,19 +545,25 @@ function toDashboardConversation(call: CallsRow): DashboardConversation {
   };
 }
 
-function toDashboardAppointment(appointment: CalendarAppointment): DashboardAppointmentRecord {
-  const customerName = nullIfFallback(appointment.customerName, MISSING_NAME_LABEL);
-  const customerPhone = nullIfFallback(appointment.customerPhone, MISSING_PHONE_LABEL);
-  const serviceType = nullIfFallback(appointment.serviceType, MISSING_SERVICE_LABEL);
+function toDashboardAppointment(appointment: AppointmentsRow): DashboardAppointmentRecord {
+  const customerName = nullIfFallback(appointment.customer_name, MISSING_NAME_LABEL);
+  const customerPhone = nullIfFallback(appointment.customer_phone, MISSING_PHONE_LABEL);
+  const serviceType = nullIfFallback(appointment.service_type ?? appointment.title, MISSING_SERVICE_LABEL);
   const location = nullIfFallback(appointment.location, "Няма адрес");
 
   return {
     id: appointment.id,
+    callId: appointment.call_id,
+    call_id: appointment.call_id,
     title: appointment.title,
-    startsAt: appointment.startsAt,
-    starts_at: appointment.startsAt,
-    endsAt: appointment.endsAt,
-    ends_at: appointment.endsAt,
+    startsAt: appointment.starts_at,
+    starts_at: appointment.starts_at,
+    endsAt: appointment.ends_at,
+    ends_at: appointment.ends_at,
+    createdAt: appointment.created_at,
+    created_at: appointment.created_at,
+    updatedAt: appointment.updated_at,
+    updated_at: appointment.updated_at,
     status: appointment.status,
     customerName,
     customer_name: customerName,
@@ -330,7 +573,38 @@ function toDashboardAppointment(appointment: CalendarAppointment): DashboardAppo
     service_type: serviceType,
     location,
     notes: appointment.notes || null,
-    hasGoogleEvent: appointment.hasGoogleEvent,
+    hasGoogleEvent: Boolean(appointment.google_calendar_event_id),
+  };
+}
+
+function toInboxListItems(
+  items: DashboardInboxItem[],
+  appointments: DashboardAppointmentRecord[]
+): DashboardInboxListItem[] {
+  const appointmentsById = new Map(appointments.map((appointment) => [appointment.id, appointment]));
+
+  return items.map((item) => {
+    const appointment = item.source === "appointment" ? appointmentsById.get(item.sourceId) : null;
+    const customerLabel = item.customerName ?? item.customerPhone ?? MISSING_NAME_LABEL;
+    const phone = item.customerPhone ?? MISSING_PHONE_LABEL;
+
+    return {
+      ...item,
+      customerLabel,
+      phone,
+      appointmentTime: appointment?.startsAt ?? null,
+      sourceHref: item.source === "call" ? `/conversations?call=${item.sourceId}` : `/appointments?appointment=${item.sourceId}`,
+    };
+  });
+}
+
+function toCustomerListItem(customer: DashboardCustomer): DashboardCustomerListItem {
+  return {
+    ...customer,
+    statusKey: getCustomerStatusKey(customer),
+    statusLabel: customer.status,
+    nextAppointmentAt: customer.nextAppointment?.startsAt ?? null,
+    nextAppointmentStatus: customer.nextAppointment?.status ?? null,
   };
 }
 
@@ -368,6 +642,93 @@ function countBy(values: Array<string | null | undefined>): Record<string, numbe
     result[key] = (result[key] ?? 0) + 1;
     return result;
   }, {});
+}
+
+function getCustomerStatusKey(customer: DashboardCustomer): CustomerStatusKey {
+  const status = customer.status.toLowerCase();
+  if (customer.nextAppointment) return "active";
+  if (status.includes("потвърж")) return "requested";
+  if (status.includes("внимание") || customer.tags.some((tag) => tag.toLowerCase().includes("потвърж"))) {
+    return "needs_confirmation";
+  }
+  return "new";
+}
+
+function getEmptyCommandCenterData(): CommandCenterData {
+  const assistantStatus = getEmptyAssistantStatus(null);
+  const funnel = getEmptyFunnel();
+
+  return {
+    metrics: {
+      calls24h: 0,
+      appointmentsToday: 0,
+      attentionItems: 0,
+      bookingRate: 0,
+    },
+    inboxItems: [],
+    nextAppointments: [],
+    funnel,
+    health: getAssistantHealth({
+      assistantConnected: false,
+      calendarConnected: false,
+      webhookHealthy: false,
+    }),
+    assistantStatus,
+  };
+}
+
+function getEmptyReportsData(): ReportsData {
+  const funnel = getEmptyFunnel();
+
+  return {
+    funnel,
+    totals: {
+      calls: 0,
+      bookings: 0,
+      booked: 0,
+      qualifiedInteractions: 0,
+      qualified: 0,
+      calendarRelevantRequests: 0,
+      calendarChecked: 0,
+      averageDurationSeconds: 0,
+      totalDurationSeconds: 0,
+      bookingRate: 0,
+    },
+    outcomes: {},
+    services: {},
+  };
+}
+
+function getEmptyFunnel(): DashboardBookingFunnel {
+  return {
+    calls: 0,
+    qualifiedInteractions: 0,
+    calendarRelevantRequests: 0,
+    bookings: 0,
+  };
+}
+
+function getEmptyAssistantStatus(organization: DashboardOrganization | null): DashboardAssistantStatus {
+  return {
+    organizationId: organization?.id ?? null,
+    organizationName: organization?.name ?? "Няма организация",
+    assistantId: null,
+    assistantName: "AI асистент",
+    assistantConnected: false,
+    assistantStatus: "missing",
+    model: "неизвестен",
+    voiceProvider: "неизвестен",
+    calendarConnected: false,
+    calendarProvider: "няма календар",
+    calendarId: null,
+    bookingEnabled: false,
+    webhookHealthy: false,
+    webhookEvents24h: 0,
+    webhookProvider: null,
+    lastWebhookReceivedAt: null,
+    toolCalls24h: 0,
+    toolErrors24h: 0,
+  };
 }
 
 function asRecord(value: Json): JsonRecord {
@@ -445,14 +806,6 @@ function isCancelledStatus(status: string | null | undefined): boolean {
   return key === "cancelled" || key === "canceled" || key === "отказан" || key === "отказана";
 }
 
-function isErrorWebhookEvent(event: { event_type: string }): boolean {
-  return includesLower(event.event_type, "error") || includesLower(event.event_type, "fail");
-}
-
-function includesLower(value: string, search: string): boolean {
-  return value.toLowerCase().includes(search);
-}
-
 function isToday(value: string): boolean {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Sofia",
@@ -483,8 +836,4 @@ function clampLimit(limit: number): number {
 
 function logSupabaseError(message: string, error: { message?: string }): void {
   console.error(`${message}: ${error.message ?? "unknown error"}`);
-}
-
-function logUnknownError(message: string, error: unknown): void {
-  console.error(`${message}: ${error instanceof Error ? error.message : "unknown error"}`);
 }
