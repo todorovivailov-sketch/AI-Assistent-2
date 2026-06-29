@@ -56,6 +56,10 @@ export function CalendarToolbar({ previousWeek, nextWeek }: CalendarToolbarProps
 
   const handleBlockSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (startTime >= endTime) {
+      alert("Крайният час трябва да бъде след началния час.");
+      return;
+    }
     alert(`Успешно блокирахте времето от ${startTime} до ${endTime} за ${reason}. AI няма да записва часове в този диапазон.`);
     setIsModalOpen(false);
   };
@@ -86,14 +90,16 @@ export function CalendarToolbar({ previousWeek, nextWeek }: CalendarToolbarProps
       <div className="relative" ref={popoverRef}>
         <button
           onClick={() => setIsPopoverOpen(!isPopoverOpen)}
+          aria-expanded={isPopoverOpen}
+          aria-haspopup="menu"
           className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--surface-muted)] transition cursor-pointer"
         >
-          <Clock size={16} className="text-amber-500" />
+          <Clock size={16} className="text-amber-500" aria-hidden="true" />
           <span>Закъснявам</span>
         </button>
 
         {isPopoverOpen && (
-          <div className="absolute right-0 mt-2 w-48 rounded-md border border-[var(--line)] bg-[var(--surface)] p-1 shadow-lg z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+          <div className="absolute right-0 mt-2 w-48 rounded-md border border-[var(--line)] bg-[var(--surface)] p-1 shadow-lg z-50 transition duration-150 ease-out">
             <div className="px-2 py-1.5 text-xs font-semibold text-[var(--ink-soft)] border-b border-[var(--line)] mb-1">
               Изберете време на закъснение:
             </div>
@@ -128,7 +134,7 @@ export function CalendarToolbar({ previousWeek, nextWeek }: CalendarToolbarProps
         }}
         className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--surface-muted)] transition cursor-pointer"
       >
-        <Ban size={16} className="text-rose-500" />
+        <Ban size={16} className="text-rose-500" aria-hidden="true" />
         <span>Блокирай време</span>
       </button>
 
@@ -142,14 +148,20 @@ export function CalendarToolbar({ previousWeek, nextWeek }: CalendarToolbarProps
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-lg border border-[var(--line)] bg-[var(--surface)] p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+          <div 
+            role="dialog" 
+            aria-modal="true" 
+            aria-labelledby="modal-title" 
+            aria-describedby="modal-desc" 
+            className="w-full max-w-md rounded-lg border border-[var(--line)] bg-[var(--surface)] p-6 shadow-xl transition duration-200 ease-out"
+          >
             <div className="flex items-center gap-2 mb-4">
               <div className="p-2 bg-rose-50 dark:bg-rose-950/30 rounded-md text-rose-500">
-                <Ban size={20} />
+                <Ban size={20} aria-hidden="true" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-[var(--foreground)]">Блокиране на време</h3>
-                <p className="text-xs text-[var(--ink-soft)]">AI няма да записва часове в този диапазон</p>
+                <h3 id="modal-title" className="text-lg font-semibold text-[var(--foreground)]">Блокиране на време</h3>
+                <p id="modal-desc" className="text-xs text-[var(--ink-soft)]">AI няма да записва часове в този диапазон</p>
               </div>
             </div>
 
