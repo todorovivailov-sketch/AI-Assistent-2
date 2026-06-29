@@ -92,9 +92,18 @@ export type DashboardAppointmentRecord = DashboardAppointmentInput & {
   hasGoogleEvent: boolean;
 };
 
-export type DashboardAppointmentListItem = Omit<DashboardAppointmentRecord, "customerName" | "serviceType"> & {
+export type DashboardAppointmentListItem = {
+  id: string;
+  title: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  status: string;
   customerName: string;
+  customerPhone: string | null;
   serviceType: string;
+  location: string | null;
+  notes: string | null;
+  hasGoogleEvent: boolean;
 };
 
 export type DashboardInboxListItem = DashboardInboxItem & {
@@ -616,9 +625,17 @@ function getNextAppointments(appointments: DashboardAppointmentRecord[], limit: 
     .sort((left, right) => dateTime(left.startsAt) - dateTime(right.startsAt))
     .slice(0, limit)
     .map((appointment) => ({
-      ...appointment,
+      id: appointment.id,
+      title: appointment.title,
+      startsAt: appointment.startsAt,
+      endsAt: appointment.endsAt,
+      status: appointment.status,
       customerName: appointment.customerName ?? MISSING_NAME_LABEL,
+      customerPhone: appointment.customerPhone,
       serviceType: appointment.serviceType ?? appointment.title ?? MISSING_SERVICE_LABEL,
+      location: appointment.location,
+      notes: appointment.notes,
+      hasGoogleEvent: appointment.hasGoogleEvent,
     }));
 }
 
