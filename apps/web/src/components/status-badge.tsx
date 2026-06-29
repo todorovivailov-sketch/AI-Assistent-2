@@ -18,7 +18,20 @@ const toneMap: Record<string, string> = {
   high: "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200",
   emergency: "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200",
   normal: "border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200",
+  medium: "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200",
   low: "border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200",
+  needs_confirmation: "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200",
+  human_requested: "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200",
+  failed_booking: "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200",
+  reschedule_requested: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200",
+  cancel_requested: "border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200",
+  price_follow_up: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200",
+  urgent: "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200",
+  tool_error: "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200",
+  attention: "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200",
+  error: "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200",
+  healthy: "border-teal-200 bg-teal-50 text-teal-800 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-200",
+  warning: "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200",
 };
 
 const labelMap: Record<string, string> = {
@@ -41,7 +54,20 @@ const labelMap: Record<string, string> = {
   high: "спешно",
   emergency: "аварийно",
   normal: "нормално",
+  medium: "средно",
   low: "ниско",
+  needs_confirmation: "за потвърждение",
+  human_requested: "иска човек",
+  failed_booking: "неуспешен запис",
+  reschedule_requested: "промяна",
+  cancel_requested: "отказ",
+  price_follow_up: "цена",
+  urgent: "спешно",
+  tool_error: "грешка",
+  attention: "внимание",
+  error: "проблем",
+  healthy: "работи",
+  warning: "преглед",
 };
 
 export function StatusBadge({ value }: { value: string }) {

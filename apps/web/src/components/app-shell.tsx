@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  Bot,
   CalendarDays,
-  ClipboardList,
+  ChartNoAxesCombined,
+  Inbox,
   LayoutDashboard,
   PhoneCall,
   Settings,
@@ -14,12 +16,14 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 const navItems = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
-  { href: "/calls", label: "Calls", icon: PhoneCall },
-  { href: "/leads", label: "Leads", icon: Users },
-  { href: "/appointments", label: "Calendar", icon: CalendarDays },
-  { href: "/orders", label: "Orders", icon: ClipboardList },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/", label: "Работно табло", icon: LayoutDashboard },
+  { href: "/inbox", label: "Задачи", icon: Inbox },
+  { href: "/appointments", label: "Календар", icon: CalendarDays },
+  { href: "/customers", label: "Клиенти", icon: Users },
+  { href: "/conversations", label: "Разговори", icon: PhoneCall },
+  { href: "/assistant", label: "Асистент", icon: Bot },
+  { href: "/reports", label: "Отчети", icon: ChartNoAxesCombined },
+  { href: "/settings", label: "Настройки", icon: Settings },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -34,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </span>
           <div>
             <div className="text-sm font-semibold">AI Receptionist</div>
-            <div className="font-mono text-xs text-[var(--ink-soft)]">Sofia / HVAC</div>
+            <div className="font-mono text-xs text-[var(--ink-soft)]">Booking assistant</div>
           </div>
         </div>
         <nav className="flex flex-col gap-1 p-3">
@@ -64,17 +68,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-10 border-b border-[var(--line)] bg-[color-mix(in_srgb,var(--background)_88%,transparent)] px-4 backdrop-blur md:px-7">
           <div className="flex h-16 items-center justify-between gap-4">
             <div className="min-w-0">
-              <div className="truncate text-sm font-semibold">Demo HVAC Company</div>
+              <div className="truncate text-sm font-semibold">AI Receptionist</div>
               <div className="truncate font-mono text-xs text-[var(--ink-soft)]">+35924372749</div>
             </div>
             <div className="flex items-center gap-2">
               <span className="hidden h-8 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--ink-soft)] sm:inline-flex">
-                Vapi connected
+                AI свързан
               </span>
               <Link
                 href="/settings"
                 className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-soft)] transition hover:text-[var(--foreground)]"
-                title="Settings"
+                title="Настройки"
               >
                 <Settings size={17} aria-hidden="true" />
               </Link>
