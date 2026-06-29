@@ -175,6 +175,7 @@ export function buildLeadInsert(callId: string, callInsert: CallInsert): LeadIns
       readString(data.preferredSlot) ??
       null,
     ai_summary: summary,
+    notes: readString(data.notes) ?? readString(data.description) ?? null,
   };
 }
 

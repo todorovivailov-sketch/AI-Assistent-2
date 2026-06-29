@@ -81,7 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
 
             {activeCall && (
-              <div className="flex items-center gap-3 rounded-full border border-rose-500/20 bg-rose-500/5 dark:bg-rose-500/10 px-3.5 py-1.5 text-xs text-rose-600 dark:text-rose-400 shadow-sm backdrop-blur-sm animate-pulse">
+              <div className="flex items-center gap-3 rounded-full border border-rose-500/20 bg-rose-500/5 dark:bg-rose-500/10 px-3.5 py-1.5 text-xs text-rose-600 dark:text-rose-400 shadow-sm backdrop-blur-sm">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75"></span>
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500"></span>

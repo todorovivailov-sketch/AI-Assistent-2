@@ -41,7 +41,7 @@ const defaultCalendarSettings: CalendarSettings = {
   calendarId: null,
   slotMinutes: 60,
   bufferMinutes: 0,
-  minNoticeMinutes: 120,
+  minNoticeMinutes: 0,
   timezone: "Europe/Sofia",
 };
 
@@ -108,7 +108,14 @@ async function checkAvailability(parameters: JsonRecord, resolution: Organizatio
   }
 
   if (!requestedStart) {
-    return `Попитай клиента в колко часа му е удобно за ${formatSofiaDate(date)}. Не предлагай часове сам, докато клиентът не каже предпочитан час.`;
+    const slots = await findAvailableSlots(organizationId, date, durationMinutes, settings);
+
+    if (slots.length === 0) {
+      return `Няма свободни часове за ${formatSofiaDate(date)}. Предложи на клиента друг ден.`;
+    }
+
+    const formattedSlots = slots.map((s) => formatSofiaTimeOnly(s.start)).join(", ");
+    return `Свободните часове за ${formatSofiaDate(date)} са: ${formattedSlots}. Кой от тях бихте искали да запишете?`;
   }
 
   const isRequestedSlotAvailable = await isSlotAvailable(organizationId, requestedStart, durationMinutes, settings);
@@ -120,10 +127,11 @@ async function checkAvailability(parameters: JsonRecord, resolution: Organizatio
   const slots = await findAvailableSlots(organizationId, date, durationMinutes, settings);
 
   if (slots.length === 0) {
-    return `Няма свободни часове за ${formatSofiaDate(date)}. Предложи на клиента друг ден.`;
+    return `Часът ${formatSofiaDateTime(requestedStart)} не е свободен и няма други свободни часове за ${formatSofiaDate(date)}. Предложи на клиента друг ден.`;
   }
 
-  return `Часът ${formatSofiaDateTime(requestedStart)} не е свободен. Попитай клиента за друг удобен час или друг ден.`;
+  const formattedSlots = slots.map((s) => formatSofiaTimeOnly(s.start)).join(", ");
+  return `Часът ${formatSofiaDateTime(requestedStart)} не е свободен. Свободните часове за ${formatSofiaDate(date)} са: ${formattedSlots}. Кой от тях бихте искали да запишете?`;
 }
 
 async function bookAppointment(parameters: JsonRecord, resolution: OrganizationResolution | null) {
@@ -617,6 +625,14 @@ function formatSofiaDateTime(value: Date) {
     weekday: "long",
     day: "2-digit",
     month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(value);
+}
+
+function formatSofiaTimeOnly(value: Date) {
+  return new Intl.DateTimeFormat("bg-BG", {
+    timeZone: "Europe/Sofia",
     hour: "2-digit",
     minute: "2-digit",
   }).format(value);

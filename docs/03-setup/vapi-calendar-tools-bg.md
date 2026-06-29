@@ -56,14 +56,14 @@ Parameters:
       "description": "Requested service or reason for the appointment, as free text from the caller."
     }
   },
-  "required": ["date", "time"]
+  "required": ["date"]
 }
 ```
 
 Assistant behavior:
 
 ```text
-When the caller asks for an appointment, first collect the date and preferred time. Then call check_availability for that exact time. If the caller gives only a date, ask what time is convenient before calling the tool. Do not invent times.
+When the caller asks for an appointment, check availability. If they specify only a date (or ask for free slots on a day), call check_availability with only the date to get all available slots and offer them. If they specify both a date and a time, check availability for that exact time. If the preferred time is busy, the tool will return the list of free slots for that day — read them out and ask the customer if any of them work.
 ```
 
 ## Tool 2: book_appointment
