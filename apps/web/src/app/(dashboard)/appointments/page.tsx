@@ -1,6 +1,6 @@
-import { CalendarPlus, ChevronLeft, ChevronRight, Clock, MapPin, Phone } from "lucide-react";
-import Link from "next/link";
+import { Clock, MapPin, Phone } from "lucide-react";
 
+import { CalendarToolbar } from "@/components/calendar-toolbar";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import {
@@ -45,37 +45,7 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
       <PageHeader
         eyebrow="Часове и заетост"
         title="Календар"
-        actions={
-          <>
-            <Link
-              href={`/appointments?week=${previousWeek}`}
-              className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-soft)] transition hover:text-[var(--foreground)]"
-              title="Предишна седмица"
-            >
-              <ChevronLeft size={17} aria-hidden="true" />
-            </Link>
-            <Link
-              href="/appointments"
-              className="inline-flex h-9 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-sm font-medium text-[var(--foreground)]"
-            >
-              Днес
-            </Link>
-            <Link
-              href={`/appointments?week=${nextWeek}`}
-              className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-soft)] transition hover:text-[var(--foreground)]"
-              title="Следваща седмица"
-            >
-              <ChevronRight size={17} aria-hidden="true" />
-            </Link>
-            <button
-              className="inline-flex h-9 items-center gap-2 rounded-md bg-teal-700 px-3 text-sm font-medium text-white"
-              title="Нов час"
-            >
-              <CalendarPlus size={16} aria-hidden="true" />
-              Нов час
-            </button>
-          </>
-        }
+        actions={<CalendarToolbar previousWeek={previousWeek} nextWeek={nextWeek} />}
       />
 
       <section className="grid gap-5 xl:grid-cols-[1fr_320px]">
