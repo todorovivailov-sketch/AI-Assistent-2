@@ -90,7 +90,11 @@ export function DashboardTimeline({ appointments }: DashboardTimelineProps) {
             <li key={appointment.id} className="relative group" role="listitem">
               {/* Timeline Dot */}
               <span 
-                className="absolute -left-[24px] top-2.5 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 border-teal-600 bg-[var(--surface)] transition-transform duration-300 group-hover:scale-125 dark:border-teal-400"
+                className={`absolute -left-[24px] top-2.5 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 bg-[var(--surface)] transition-transform duration-300 group-hover:scale-125 ${
+                  appointment.status === "confirmed"
+                    ? "border-emerald-500 dark:border-emerald-400 animate-glow-pulse"
+                    : "border-blue-500 dark:border-blue-400 animate-glow-pulse-blue"
+                }`}
                 aria-hidden="true"
               />
 

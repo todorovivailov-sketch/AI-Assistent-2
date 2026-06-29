@@ -36,7 +36,7 @@ export default async function CommandCenterPage() {
 
       <section className="grid min-w-0 gap-4 grid-cols-1 md:grid-cols-3">
         {/* Card 1: Обаждания (col-span-2) */}
-        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-teal-500/30 md:col-span-2 col-span-1 bg-gradient-to-br from-teal-500/5 via-[var(--surface)] to-[var(--surface)]">
+        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(13,148,136,0.15)] hover:border-teal-500/50 md:col-span-2 col-span-1 bg-gradient-to-br from-teal-500/5 via-[var(--surface)] to-[var(--surface)]">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold tracking-wider uppercase text-[var(--ink-soft)]">
@@ -56,7 +56,7 @@ export default async function CommandCenterPage() {
         </div>
 
         {/* Card 2: Часове днес (col-span-1) */}
-        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-blue-500/30 col-span-1 bg-gradient-to-br from-blue-500/5 via-[var(--surface)] to-[var(--surface)]">
+        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(37,99,235,0.15)] hover:border-blue-500/50 col-span-1 bg-gradient-to-br from-blue-500/5 via-[var(--surface)] to-[var(--surface)]">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold tracking-wider uppercase text-[var(--ink-soft)]">
@@ -76,7 +76,7 @@ export default async function CommandCenterPage() {
         </div>
 
         {/* Card 3: За преглед (col-span-1) */}
-        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-amber-500/30 col-span-1 bg-gradient-to-br from-amber-500/5 via-[var(--surface)] to-[var(--surface)]">
+        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(217,119,6,0.15)] hover:border-amber-500/50 col-span-1 bg-gradient-to-br from-amber-500/5 via-[var(--surface)] to-[var(--surface)]">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold tracking-wider uppercase text-[var(--ink-soft)]">
@@ -96,7 +96,7 @@ export default async function CommandCenterPage() {
         </div>
 
         {/* Card 4: Booking rate (col-span-2) */}
-        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-emerald-500/30 md:col-span-2 col-span-1 bg-gradient-to-br from-emerald-500/5 via-[var(--surface)] to-[var(--surface)]">
+        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:border-emerald-500/50 md:col-span-2 col-span-1 bg-gradient-to-br from-emerald-500/5 via-[var(--surface)] to-[var(--surface)]">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold tracking-wider uppercase text-[var(--ink-soft)]">
@@ -180,7 +180,22 @@ export default async function CommandCenterPage() {
         <SectionPanel title="AI health" eyebrow="Assistant">
           <div className="px-4 py-4">
             <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge value={data.health.status} />
+              <div className="relative flex h-2.5 w-2.5">
+                <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping ${
+                  data.health.status === "healthy"
+                    ? "bg-emerald-500"
+                    : data.health.status === "warning"
+                      ? "bg-amber-500"
+                      : "bg-red-500"
+                }`} />
+                <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
+                  data.health.status === "healthy"
+                    ? "bg-emerald-500"
+                    : data.health.status === "warning"
+                      ? "bg-amber-500"
+                      : "bg-red-500"
+                }`} />
+              </div>
               <span className="text-sm font-medium">{data.health.label}</span>
             </div>
             <div className="mt-2 text-sm text-[var(--ink-soft)]">{data.health.detail}</div>
