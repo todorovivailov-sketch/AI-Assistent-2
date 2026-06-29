@@ -3,7 +3,11 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
-import { getCalendarAppointments, type CalendarAppointment } from "@/lib/live-data";
+import {
+  getCalendarAppointmentById,
+  getCalendarPageAppointments,
+  type DashboardAppointmentListItem,
+} from "@/lib/dashboard/data";
 
 export const dynamic = "force-dynamic";
 
@@ -15,14 +19,21 @@ const hours = Array.from({ length: calendarEndHour - calendarStartHour + 1 }, (_
 type AppointmentsPageProps = {
   searchParams?: Promise<{
     week?: string;
+    appointment?: string;
   }>;
 };
 
 export default async function AppointmentsPage({ searchParams }: AppointmentsPageProps) {
   const params = await searchParams;
-  const weekStart = getWeekStart(parseWeekParam(params?.week) ?? new Date());
+  const selectedAppointmentId = params?.appointment ?? null;
+  const focusedAppointment = selectedAppointmentId ? await getCalendarAppointmentById(selectedAppointmentId) : null;
+  const weekBase = parseWeekParam(params?.week) ?? (focusedAppointment?.startsAt ? new Date(focusedAppointment.startsAt) : new Date());
+  const weekStart = getWeekStart(weekBase);
   const weekEnd = addDays(weekStart, 7);
-  const appointments = await getCalendarAppointments(weekStart, weekEnd);
+  const appointments = mergeFocusedAppointment(
+    await getCalendarPageAppointments(weekStart, weekEnd),
+    focusedAppointment
+  );
   const scheduled = appointments.filter((appointment) => appointment.startsAt);
   const unscheduled = appointments.filter((appointment) => !appointment.startsAt);
   const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
@@ -114,6 +125,7 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
                   key={day.toISOString()}
                   day={day}
                   appointments={scheduled.filter((appointment) => isSameSofiaDate(appointment.startsAt, day))}
+                  selectedAppointmentId={selectedAppointmentId}
                 />
               ))}
             </div>
@@ -127,7 +139,11 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
           </div>
           <div className="divide-y divide-[var(--line)]">
             {scheduled.map((appointment) => (
-              <AppointmentListItem key={appointment.id} appointment={appointment} />
+              <AppointmentListItem
+                key={appointment.id}
+                appointment={appointment}
+                selected={appointment.id === selectedAppointmentId}
+              />
             ))}
             {scheduled.length === 0 ? (
               <div className="px-4 py-8 text-sm text-[var(--ink-soft)]">Няма записани часове за тази седмица.</div>
@@ -141,7 +157,11 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
               </div>
               <div className="divide-y divide-[var(--line)]">
                 {unscheduled.map((appointment) => (
-                  <AppointmentListItem key={appointment.id} appointment={appointment} />
+                  <AppointmentListItem
+                    key={appointment.id}
+                    appointment={appointment}
+                    selected={appointment.id === selectedAppointmentId}
+                  />
                 ))}
               </div>
             </>
@@ -152,7 +172,15 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
   );
 }
 
-function DayColumn({ day, appointments }: { day: Date; appointments: CalendarAppointment[] }) {
+function DayColumn({
+  day,
+  appointments,
+  selectedAppointmentId,
+}: {
+  day: Date;
+  appointments: DashboardAppointmentListItem[];
+  selectedAppointmentId: string | null;
+}) {
   return (
     <div className="relative border-r border-[var(--line)]" style={{ height: 660 }}>
       {hours.slice(0, -1).map((hour) => (
@@ -164,7 +192,11 @@ function DayColumn({ day, appointments }: { day: Date; appointments: CalendarApp
       ))}
 
       {appointments.map((appointment) => (
-        <AppointmentBlock key={appointment.id} appointment={appointment} />
+        <AppointmentBlock
+          key={appointment.id}
+          appointment={appointment}
+          selected={appointment.id === selectedAppointmentId}
+        />
       ))}
 
       {isToday(day) ? <div className="absolute inset-y-0 left-0 w-0.5 bg-teal-600" /> : null}
@@ -172,7 +204,13 @@ function DayColumn({ day, appointments }: { day: Date; appointments: CalendarApp
   );
 }
 
-function AppointmentBlock({ appointment }: { appointment: CalendarAppointment }) {
+function AppointmentBlock({
+  appointment,
+  selected,
+}: {
+  appointment: DashboardAppointmentListItem;
+  selected: boolean;
+}) {
   const position = getAppointmentPosition(appointment);
 
   return (
@@ -181,7 +219,7 @@ function AppointmentBlock({ appointment }: { appointment: CalendarAppointment })
         appointment.status === "confirmed"
           ? "border-teal-300 bg-teal-50 text-teal-950 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-100"
           : "border-blue-300 bg-blue-50 text-blue-950 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100"
-      }`}
+      } ${selected ? "ring-2 ring-teal-700 ring-offset-2 ring-offset-[var(--surface)]" : ""}`}
       style={{
         top: position.top,
         minHeight: 46,
@@ -198,9 +236,15 @@ function AppointmentBlock({ appointment }: { appointment: CalendarAppointment })
   );
 }
 
-function AppointmentListItem({ appointment }: { appointment: CalendarAppointment }) {
+function AppointmentListItem({
+  appointment,
+  selected = false,
+}: {
+  appointment: DashboardAppointmentListItem;
+  selected?: boolean;
+}) {
   return (
-    <div className="px-4 py-4">
+    <div className={`px-4 py-4 ${selected ? "bg-teal-50/70 dark:bg-teal-950/30" : ""}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold">{appointment.customerName}</div>
@@ -226,7 +270,7 @@ function AppointmentListItem({ appointment }: { appointment: CalendarAppointment
   );
 }
 
-function getAppointmentPosition(appointment: CalendarAppointment) {
+function getAppointmentPosition(appointment: DashboardAppointmentListItem) {
   const start = appointment.startsAt ? new Date(appointment.startsAt) : null;
   const end = appointment.endsAt ? new Date(appointment.endsAt) : null;
 
@@ -301,7 +345,7 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
-function formatAppointmentTime(appointment: CalendarAppointment) {
+function formatAppointmentTime(appointment: DashboardAppointmentListItem) {
   if (!appointment.startsAt) return "--:--";
   const start = formatTime(appointment.startsAt);
   const end = appointment.endsAt ? formatTime(appointment.endsAt) : null;
@@ -328,6 +372,25 @@ function isSameSofiaDate(value: string | null, day: Date) {
   const left = getSofiaDateParts(new Date(value));
   const right = getSofiaDateParts(day);
   return left.year === right.year && left.month === right.month && left.day === right.day;
+}
+
+function mergeFocusedAppointment(
+  appointments: DashboardAppointmentListItem[],
+  focusedAppointment: DashboardAppointmentListItem | null
+) {
+  if (!focusedAppointment) return appointments;
+
+  const merged = [
+    focusedAppointment,
+    ...appointments.filter((appointment) => appointment.id !== focusedAppointment.id),
+  ];
+
+  return merged.sort((left, right) => {
+    if (!left.startsAt && !right.startsAt) return left.customerName.localeCompare(right.customerName, "bg-BG");
+    if (!left.startsAt) return 1;
+    if (!right.startsAt) return -1;
+    return new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime();
+  });
 }
 
 function getSofiaDateParts(value: Date) {

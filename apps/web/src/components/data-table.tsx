@@ -27,13 +27,15 @@ export function DataTable({
 export function DataRow({
   columns,
   children,
+  className,
 }: {
   columns: number;
   children: ReactNode;
+  className?: string;
 }) {
   return (
     <div
-      className="grid items-center gap-3 px-4 py-3 text-sm"
+      className={`grid items-center gap-3 px-4 py-3 text-sm ${className ?? ""}`}
       style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
     >
       {children}

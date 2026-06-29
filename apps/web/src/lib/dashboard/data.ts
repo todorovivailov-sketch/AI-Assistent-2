@@ -177,6 +177,10 @@ const DASHBOARD_LOOKBACK_DAYS = 14;
 const APPOINTMENT_LOOKAHEAD_DAYS = 30;
 // Temporary no-auth fallback for the first demo tenant; replace with authenticated organization resolution.
 const DEFAULT_ORGANIZATION_SLUG = "demo-hvac-company";
+const DASHBOARD_CALL_SELECT =
+  "id, caller_number, disposition, status, started_at, created_at, duration_seconds, summary, structured_data";
+const DASHBOARD_APPOINTMENT_SELECT =
+  "id, call_id, title, starts_at, ends_at, status, customer_name, customer_phone, service_type, location, notes, google_calendar_event_id, created_at, updated_at";
 const MISSING_NAME_LABEL = "Без име";
 const MISSING_PHONE_LABEL = "Няма телефон";
 const MISSING_SERVICE_LABEL = "Обща заявка";
@@ -255,6 +259,46 @@ export async function getConversationsData(limit = 50): Promise<DashboardConvers
   return getDashboardCalls(organization.id, limit, { since: daysFromNow(-DASHBOARD_LOOKBACK_DAYS) });
 }
 
+export async function getConversationById(callId: string): Promise<DashboardConversation | null> {
+  const id = normalizeUuid(callId);
+  if (!id) return null;
+
+  const organization = await getDashboardOrganization();
+  if (!organization) return null;
+
+  return getDashboardCallById(organization.id, id);
+}
+
+export async function getCalendarPageAppointments(
+  start: Date,
+  end: Date
+): Promise<DashboardAppointmentListItem[]> {
+  const organization = await getDashboardOrganization();
+  if (!organization) return [];
+
+  const appointments = await getDashboardAppointments(organization.id, 100, {
+    mode: "operational",
+    start,
+    end,
+    includeUnscheduledSince: daysFromNow(-DASHBOARD_LOOKBACK_DAYS),
+  });
+
+  return appointments.map(toAppointmentListItem);
+}
+
+export async function getCalendarAppointmentById(
+  appointmentId: string
+): Promise<DashboardAppointmentListItem | null> {
+  const id = normalizeUuid(appointmentId);
+  if (!id) return null;
+
+  const organization = await getDashboardOrganization();
+  if (!organization) return null;
+
+  const appointment = await getDashboardAppointmentById(organization.id, id);
+  return appointment ? toAppointmentListItem(appointment) : null;
+}
+
 export async function getReportsData(): Promise<ReportsData> {
   const organization = await getDashboardOrganization();
   if (!organization) return getEmptyReportsData();
@@ -329,7 +373,7 @@ async function getDashboardCalls(
   const supabase = getSupabaseServiceClient();
   let query = supabase
     .from("calls")
-    .select("id, caller_number, disposition, status, started_at, created_at, duration_seconds, summary, structured_data")
+    .select(DASHBOARD_CALL_SELECT)
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
     .limit(clampLimit(limit));
@@ -345,6 +389,26 @@ async function getDashboardCalls(
   }
 
   return (data ?? []).map(toDashboardConversation);
+}
+
+async function getDashboardCallById(
+  organizationId: string,
+  callId: string
+): Promise<DashboardConversation | null> {
+  const supabase = getSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("calls")
+    .select(DASHBOARD_CALL_SELECT)
+    .eq("organization_id", organizationId)
+    .eq("id", callId)
+    .maybeSingle();
+
+  if (error) {
+    logSupabaseError("Dashboard call detail query failed", error);
+    return null;
+  }
+
+  return data ? toDashboardConversation(data) : null;
 }
 
 async function getOperationalAppointments(
@@ -388,9 +452,7 @@ async function getDashboardAppointments(
   const supabase = getSupabaseServiceClient();
   let query = supabase
     .from("appointments")
-    .select(
-      "id, call_id, title, starts_at, ends_at, status, customer_name, customer_phone, service_type, location, notes, google_calendar_event_id, created_at, updated_at"
-    )
+    .select(DASHBOARD_APPOINTMENT_SELECT)
     .eq("organization_id", organizationId)
     .limit(clampLimit(limit));
 
@@ -417,6 +479,26 @@ async function getDashboardAppointments(
   }
 
   return (data ?? []).map(toDashboardAppointment);
+}
+
+async function getDashboardAppointmentById(
+  organizationId: string,
+  appointmentId: string
+): Promise<DashboardAppointmentRecord | null> {
+  const supabase = getSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("appointments")
+    .select(DASHBOARD_APPOINTMENT_SELECT)
+    .eq("organization_id", organizationId)
+    .eq("id", appointmentId)
+    .maybeSingle();
+
+  if (error) {
+    logSupabaseError("Dashboard appointment detail query failed", error);
+    return null;
+  }
+
+  return data ? toDashboardAppointment(data) : null;
 }
 
 async function getCallsCountSince(organizationId: string, since: Date): Promise<number> {
@@ -617,6 +699,22 @@ function toCustomerListItem(customer: DashboardCustomer): DashboardCustomerListI
   };
 }
 
+function toAppointmentListItem(appointment: DashboardAppointmentRecord): DashboardAppointmentListItem {
+  return {
+    id: appointment.id,
+    title: appointment.title,
+    startsAt: appointment.startsAt,
+    endsAt: appointment.endsAt,
+    status: appointment.status,
+    customerName: appointment.customerName ?? MISSING_NAME_LABEL,
+    customerPhone: appointment.customerPhone,
+    serviceType: appointment.serviceType ?? appointment.title ?? MISSING_SERVICE_LABEL,
+    location: appointment.location,
+    notes: appointment.notes,
+    hasGoogleEvent: appointment.hasGoogleEvent,
+  };
+}
+
 function getNextAppointments(appointments: DashboardAppointmentRecord[], limit: number): DashboardAppointmentListItem[] {
   const now = Date.now();
 
@@ -624,19 +722,7 @@ function getNextAppointments(appointments: DashboardAppointmentRecord[], limit: 
     .filter((appointment) => appointment.startsAt && dateTime(appointment.startsAt) >= now && !isCancelledStatus(appointment.status))
     .sort((left, right) => dateTime(left.startsAt) - dateTime(right.startsAt))
     .slice(0, limit)
-    .map((appointment) => ({
-      id: appointment.id,
-      title: appointment.title,
-      startsAt: appointment.startsAt,
-      endsAt: appointment.endsAt,
-      status: appointment.status,
-      customerName: appointment.customerName ?? MISSING_NAME_LABEL,
-      customerPhone: appointment.customerPhone,
-      serviceType: appointment.serviceType ?? appointment.title ?? MISSING_SERVICE_LABEL,
-      location: appointment.location,
-      notes: appointment.notes,
-      hasGoogleEvent: appointment.hasGoogleEvent,
-    }));
+    .map(toAppointmentListItem);
 }
 
 function isAppointmentToday(appointment: DashboardAppointmentRecord): boolean {
@@ -772,6 +858,13 @@ function nullIfFallback(value: string | null, fallback: string): string | null {
 function normalizeKey(value: string | null): string | null {
   const text = readDisplayString(value);
   return text ? text.toLowerCase() : null;
+}
+
+function normalizeUuid(value: string | null | undefined): string | null {
+  const text = readDisplayString(value);
+  return text && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text)
+    ? text
+    : null;
 }
 
 function formatOutcomeLabel(value: string): string {
