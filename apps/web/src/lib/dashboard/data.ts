@@ -29,6 +29,8 @@ type CallsRow = Pick<
   | "duration_seconds"
   | "summary"
   | "structured_data"
+  | "recording_url"
+  | "transcript"
 >;
 type AppointmentsRow = Pick<
   Database["public"]["Tables"]["appointments"]["Row"],
@@ -72,6 +74,8 @@ export type DashboardConversation = DashboardCallInput & {
   summaryPreview: string;
   structuredData: JsonRecord;
   structured_data: Json;
+  recordingUrl: string | null;
+  transcriptText: string | null;
 };
 
 export type DashboardAppointmentRecord = DashboardAppointmentInput & {
@@ -178,7 +182,7 @@ const APPOINTMENT_LOOKAHEAD_DAYS = 30;
 // Temporary no-auth fallback for the first demo tenant; replace with authenticated organization resolution.
 const DEFAULT_ORGANIZATION_SLUG = "demo-hvac-company";
 const DASHBOARD_CALL_SELECT =
-  "id, caller_number, disposition, status, started_at, created_at, duration_seconds, summary, structured_data";
+  "id, caller_number, disposition, status, started_at, created_at, duration_seconds, summary, structured_data, recording_url, transcript";
 const DASHBOARD_APPOINTMENT_SELECT =
   "id, call_id, title, starts_at, ends_at, status, customer_name, customer_phone, service_type, location, notes, google_calendar_event_id, created_at, updated_at";
 const MISSING_NAME_LABEL = "Без име";
@@ -633,6 +637,8 @@ function toDashboardConversation(call: CallsRow): DashboardConversation {
     summaryPreview: call.summary ?? MISSING_SUMMARY_LABEL,
     structuredData,
     structured_data: call.structured_data,
+    recordingUrl: call.recording_url ?? null,
+    transcriptText: call.transcript ?? null,
   };
 }
 
