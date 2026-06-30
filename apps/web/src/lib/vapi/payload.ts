@@ -173,6 +173,8 @@ export function buildLeadInsert(callId: string, callInsert: CallInsert): LeadIns
       readString(data.preferredTime) ??
       readString(data.preferred_time) ??
       readString(data.preferredSlot) ??
+      readString(data.requested_time) ??
+      readString(data.requestedTime) ??
       null,
     ai_summary: summary,
     notes: readString(data.notes) ?? readString(data.description) ?? null,
@@ -420,10 +422,20 @@ function getTranscriptTurns(transcript: string): Array<{ speaker: "ai" | "user";
     .filter((turn): turn is { speaker: "ai" | "user"; text: string } => Boolean(turn));
 }
 
-function inferDisposition(data: JsonRecord): CallInsert["disposition"] {
+export function inferDisposition(data: JsonRecord): CallInsert["disposition"] {
   const status = `${readString(data.disposition) ?? ""} ${readString(data.outcome) ?? ""}`.toLowerCase();
+  const nextAction = (readString(data.next_action) ?? readString(data.nextAction) ?? "").toLowerCase();
+  const appointmentConfirmed = data.appointment_confirmed === true || data.appointmentConfirmed === true;
 
-  if (status.includes("appointment") || status.includes("book")) return "appointment";
+  if (
+    appointmentConfirmed ||
+    status.includes("appointment") ||
+    status.includes("book") ||
+    nextAction.includes("book") ||
+    nextAction.includes("appointment")
+  ) {
+    return "appointment";
+  }
   if (status.includes("spam")) return "spam";
   if (status.includes("support")) return "support";
   if (status.includes("wrong")) return "wrong_number";
