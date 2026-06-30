@@ -12,6 +12,8 @@ import {
   type DashboardAppointmentListItem,
 } from "@/lib/dashboard/data";
 
+import { NewAppointmentButton } from "./new-appointment-button";
+
 export const dynamic = "force-dynamic";
 
 const calendarStartHour = 8;
@@ -48,7 +50,12 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
       <PageHeader
         eyebrow="Часове и заетост"
         title="Календар"
-        actions={<CalendarToolbar previousWeek={previousWeek} nextWeek={nextWeek} />}
+        actions={
+          <>
+            <NewAppointmentButton />
+            <CalendarToolbar previousWeek={previousWeek} nextWeek={nextWeek} />
+          </>
+        }
       />
 
       <section className="grid gap-5 xl:grid-cols-[1fr_320px]">

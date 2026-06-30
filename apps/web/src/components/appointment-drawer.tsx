@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -17,6 +17,9 @@ import {
 } from "lucide-react";
 
 import { StatusBadge } from "@/components/status-badge";
+
+import { updateAppointment } from "@/app/(dashboard)/appointments/actions";
+import { APPOINTMENT_STATUSES } from "@/lib/crm/appointment-form";
 
 export interface Appointment {
   id: string;
@@ -78,6 +81,9 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
   const [currentTime, setCurrentTime] = useState(0);
   const [speed, setSpeed] = useState<1 | 1.5 | 2>(1);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isSaving, startSave] = useTransition();
   const duration = 74;
 
   useEffect(() => {
@@ -132,9 +138,19 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
     alert(`Подготвено съобщение до ${appointment.customerPhone || "клиента"}.`);
   };
 
-  const handleRescheduleAlert = () => {
-    alert("Тук ще се отвори диалог за преместване на часа.");
-  };
+  function handleEditSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    setEditError(null);
+    startSave(async () => {
+      const result = await updateAppointment(appointment.id, formData);
+      if (!result.ok) setEditError(rescheduleErrorLabel(result.error));
+      else {
+        setIsEditing(false);
+        router.refresh();
+      }
+    });
+  }
 
   const handleCancel = async () => {
     if (!confirm("Сигурни ли сте, че искате да отмените този час?")) return;
@@ -170,7 +186,7 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
           role="dialog"
           aria-modal="true"
           aria-labelledby="drawer-title"
-          className="flex h-full w-screen max-w-[460px] flex-col border-l border-[var(--line)] bg-[var(--surface)] text-[var(--foreground)] shadow-2xl"
+          className="relative flex h-full w-screen max-w-[460px] flex-col border-l border-[var(--line)] bg-[var(--surface)] text-[var(--foreground)] shadow-2xl"
         >
           <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] px-6 py-5">
             <div className="min-w-0">
@@ -306,7 +322,10 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
 
           <div className="grid shrink-0 grid-cols-2 gap-3 border-t border-[var(--line)] bg-[var(--surface-muted)] px-6 py-5">
             <button
-              onClick={handleRescheduleAlert}
+              onClick={() => {
+                setEditError(null);
+                setIsEditing(true);
+              }}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-sm font-semibold transition hover:bg-[var(--surface-muted)]"
             >
               <Calendar size={16} />
@@ -321,6 +340,91 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
               {isDeleting ? "Анулиране..." : "Отмени"}
             </button>
           </div>
+
+          {isEditing ? (
+            <div className="absolute inset-0 z-10 flex flex-col bg-[var(--surface)]">
+              <div className="flex items-center justify-between border-b border-[var(--line)] px-6 py-5">
+                <h3 className="text-base font-semibold">Редакция на часа</h3>
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  aria-label="Затвори"
+                  className="inline-flex size-9 items-center justify-center rounded-md text-[var(--ink-soft)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <form onSubmit={handleEditSubmit} className="flex flex-1 flex-col gap-3 overflow-y-auto px-6 py-5">
+                <EditField label="Заглавие">
+                  <input name="title" defaultValue={appointment.title} className={fieldInput} />
+                </EditField>
+                <div className="grid grid-cols-2 gap-3">
+                  <EditField label="Дата">
+                    <input
+                      type="date"
+                      name="date"
+                      defaultValue={toSofiaParts(appointment.startsAt).date}
+                      className={fieldInput}
+                    />
+                  </EditField>
+                  <EditField label="Статус">
+                    <select name="status" defaultValue={appointment.status} className={fieldInput}>
+                      {APPOINTMENT_STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {APPOINTMENT_STATUS_LABELS[status] ?? status}
+                        </option>
+                      ))}
+                    </select>
+                  </EditField>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <EditField label="Начало">
+                    <input
+                      type="time"
+                      name="time"
+                      defaultValue={toSofiaParts(appointment.startsAt).time}
+                      className={fieldInput}
+                    />
+                  </EditField>
+                  <EditField label="Край">
+                    <input
+                      type="time"
+                      name="end_time"
+                      defaultValue={toSofiaParts(appointment.endsAt).time}
+                      className={fieldInput}
+                    />
+                  </EditField>
+                </div>
+                <EditField label="Адрес">
+                  <input name="location" defaultValue={appointment.location ?? ""} className={fieldInput} />
+                </EditField>
+                <EditField label="Бележки">
+                  <textarea name="notes" defaultValue={appointment.notes ?? ""} rows={3} className={fieldTextarea} />
+                </EditField>
+                {editError ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {editError}
+                  </div>
+                ) : null}
+                <div className="mt-auto flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="inline-flex h-10 items-center rounded-lg border border-[var(--line)] px-4 text-sm font-medium text-[var(--ink-soft)] transition hover:bg-[var(--surface-muted)]"
+                  >
+                    Отказ
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="inline-flex h-10 items-center rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-ink)] transition hover:brightness-95 disabled:opacity-60"
+                  >
+                    {isSaving ? "Запис…" : "Запази"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -350,4 +454,60 @@ function IconLine({
       </span>
     </div>
   );
+}
+
+const fieldInput =
+  "h-10 w-full rounded-lg border border-[var(--line)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent-strong)]";
+const fieldTextarea =
+  "w-full rounded-lg border border-[var(--line)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:border-[var(--accent-strong)]";
+
+const APPOINTMENT_STATUS_LABELS: Record<string, string> = {
+  requested: "Заявен",
+  confirmed: "Потвърден",
+  completed: "Завършен",
+  cancelled: "Отказан",
+  no_show: "Не се яви",
+  rescheduled: "Преместен",
+};
+
+function EditField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="flex min-w-0 flex-col gap-1 text-sm">
+      <span className="font-medium text-[var(--ink-soft)]">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+// Stored times are UTC instants; the date/time inputs need Sofia wall-clock components.
+function toSofiaParts(iso: string | null): { date: string; time: string } {
+  if (!iso) return { date: "", time: "" };
+  const value = new Date(iso);
+  if (!Number.isFinite(value.getTime())) return { date: "", time: "" };
+  const date = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Sofia",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(value);
+  const time = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Sofia",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(value);
+  return { date, time };
+}
+
+function rescheduleErrorLabel(code: string): string {
+  switch (code) {
+    case "start_required":
+      return "Избери дата.";
+    case "start_invalid":
+      return "Невалиден час.";
+    case "end_before_start":
+      return "Краят трябва да е след началото.";
+    default:
+      return "Неуспешна промяна на часа.";
+  }
 }
