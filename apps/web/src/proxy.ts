@@ -1,26 +1,39 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export function proxy(request: NextRequest) {
-  const token = process.env.DASHBOARD_ACCESS_TOKEN;
+import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/env";
 
-  if (!token && process.env.NODE_ENV !== "production") {
-    return NextResponse.next();
-  }
+export async function proxy(request: NextRequest) {
+  let response = NextResponse.next({ request });
 
-  if (!token) {
-    return new NextResponse("Dashboard access is not configured.", { status: 503 });
-  }
-
-  if (isAuthorized(request.headers.get("authorization"), token)) {
-    return NextResponse.next();
-  }
-
-  return new NextResponse("Authentication required.", {
-    status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="AI Receptionist Dashboard", charset="UTF-8"',
+  const supabase = createServerClient(getSupabaseUrl(), getSupabasePublishableKey(), {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options)
+        );
+      },
     },
   });
+
+  // Keep getUser() immediately after createServerClient — it refreshes the session
+  // token and writes the rotated cookies via setAll above. Do not insert logic between them.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user && !request.nextUrl.pathname.startsWith("/login")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  return response;
 }
 
 export const config = {
@@ -38,33 +51,3 @@ export const config = {
     "/settings/:path*",
   ],
 };
-
-function isAuthorized(authorization: string | null, expectedToken: string) {
-  if (!authorization) return false;
-
-  if (authorization.startsWith("Bearer ")) {
-    return safeEqual(authorization.slice("Bearer ".length), expectedToken);
-  }
-
-  if (!authorization.startsWith("Basic ")) return false;
-
-  try {
-    const decoded = atob(authorization.slice("Basic ".length));
-    const separatorIndex = decoded.indexOf(":");
-    const password = separatorIndex >= 0 ? decoded.slice(separatorIndex + 1) : decoded;
-    return safeEqual(password, expectedToken);
-  } catch {
-    return false;
-  }
-}
-
-function safeEqual(left: string, right: string) {
-  if (left.length !== right.length) return false;
-
-  let result = 0;
-  for (let index = 0; index < left.length; index += 1) {
-    result |= left.charCodeAt(index) ^ right.charCodeAt(index);
-  }
-
-  return result === 0;
-}
