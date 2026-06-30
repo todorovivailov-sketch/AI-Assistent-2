@@ -46,6 +46,22 @@ type AppointmentsRow = Pick<
   | "created_at"
   | "updated_at"
 >;
+type LeadsRow = Pick<
+  Database["public"]["Tables"]["leads"]["Row"],
+  | "id"
+  | "name"
+  | "phone"
+  | "email"
+  | "city"
+  | "service_type"
+  | "urgency"
+  | "status"
+  | "source"
+  | "notes"
+  | "ai_summary"
+  | "preferred_time_text"
+  | "created_at"
+>;
 
 type DashboardOrganization = {
   id: string;
@@ -105,6 +121,22 @@ export type DashboardAppointmentListItem = {
   location: string | null;
   notes: string | null;
   hasGoogleEvent: boolean;
+};
+
+export type DashboardLeadListItem = {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  city: string | null;
+  serviceType: string | null;
+  urgency: string | null;
+  status: string;
+  source: string;
+  notes: string | null;
+  aiSummary: string | null;
+  preferredTimeText: string | null;
+  createdAt: string;
 };
 
 export type DashboardInboxListItem = DashboardInboxItem & {
@@ -180,6 +212,8 @@ const DASHBOARD_CALL_SELECT =
   "id, caller_number, disposition, status, started_at, created_at, duration_seconds, summary, structured_data, recording_url, transcript";
 const DASHBOARD_APPOINTMENT_SELECT =
   "id, call_id, title, starts_at, ends_at, status, customer_name, customer_phone, service_type, location, notes, google_calendar_event_id, created_at, updated_at";
+const DASHBOARD_LEAD_SELECT =
+  "id, name, phone, email, city, service_type, urgency, status, source, notes, ai_summary, preferred_time_text, created_at";
 const MISSING_NAME_LABEL = "Без име";
 const MISSING_PHONE_LABEL = "Няма телефон";
 const MISSING_SERVICE_LABEL = "Обща заявка";
@@ -296,6 +330,26 @@ export async function getCalendarAppointmentById(
 
   const appointment = await getDashboardAppointmentById(organization.id, id);
   return appointment ? toAppointmentListItem(appointment) : null;
+}
+
+export async function getLeadsData(limit = 200): Promise<DashboardLeadListItem[]> {
+  const organization = await getDashboardOrganization();
+  if (!organization) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("leads")
+    .select(DASHBOARD_LEAD_SELECT)
+    .eq("organization_id", organization.id)
+    .order("created_at", { ascending: false })
+    .limit(clampLimit(limit));
+
+  if (error) {
+    logSupabaseError("Dashboard leads query failed", error);
+    return [];
+  }
+
+  return (data ?? []).map(toLeadListItem);
 }
 
 export async function getReportsData(): Promise<ReportsData> {
@@ -683,6 +737,24 @@ function toAppointmentListItem(appointment: DashboardAppointmentRecord): Dashboa
     location: appointment.location,
     notes: appointment.notes,
     hasGoogleEvent: appointment.hasGoogleEvent,
+  };
+}
+
+function toLeadListItem(lead: LeadsRow): DashboardLeadListItem {
+  return {
+    id: lead.id,
+    name: readDisplayString(lead.name) ?? MISSING_NAME_LABEL,
+    phone: readDisplayString(lead.phone),
+    email: readDisplayString(lead.email),
+    city: readDisplayString(lead.city),
+    serviceType: readDisplayString(lead.service_type),
+    urgency: readDisplayString(lead.urgency),
+    status: readDisplayString(lead.status) ?? "new",
+    source: readDisplayString(lead.source) ?? "phone",
+    notes: readDisplayString(lead.notes),
+    aiSummary: readDisplayString(lead.ai_summary),
+    preferredTimeText: readDisplayString(lead.preferred_time_text),
+    createdAt: lead.created_at,
   };
 }
 
