@@ -170,22 +170,22 @@ disposition определи така: запазен/потвърден час 
 {
   "type": "object",
   "properties": {
-    "name": { "type": ["string", "null"] },
+    "name": { "type": "string" },
     "name_uncertain": { "type": "boolean" },
-    "phone": { "type": ["string", "null"] },
-    "service_type": { "type": ["string", "null"] },
-    "city": { "type": ["string", "null"] },
-    "district": { "type": ["string", "null"] },
-    "address": { "type": ["string", "null"] },
-    "email": { "type": ["string", "null"] },
-    "preferred_time": { "type": ["string", "null"] },
-    "notes": { "type": ["string", "null"] },
+    "phone": { "type": "string" },
+    "service_type": { "type": "string" },
+    "city": { "type": "string" },
+    "district": { "type": "string" },
+    "address": { "type": "string" },
+    "email": { "type": "string" },
+    "preferred_time": { "type": "string" },
+    "notes": { "type": "string" },
     "urgency": {
-      "type": ["string", "null"],
+      "type": "string",
       "enum": ["low", "normal", "high", "emergency", null]
     },
     "disposition": {
-      "type": ["string", "null"],
+      "type": "string",
       "enum": ["appointment", "lead", "spam", "support", "wrong_number", "unknown", null]
     }
   },
