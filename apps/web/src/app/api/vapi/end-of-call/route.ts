@@ -20,6 +20,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     endpoint: "vapi-end-of-call",
+    commit: process.env.VERCEL_GIT_COMMIT_SHA ?? "local",
     supabaseConfigured: Boolean(
       process.env.NEXT_PUBLIC_SUPABASE_URL &&
         (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)
