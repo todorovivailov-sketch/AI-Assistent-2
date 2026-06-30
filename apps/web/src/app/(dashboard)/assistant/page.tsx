@@ -4,7 +4,10 @@ import { MetricCard } from "@/components/metric-card";
 import { PageHeader } from "@/components/page-header";
 import { SectionPanel } from "@/components/section-panel";
 import { StatusBadge } from "@/components/status-badge";
+import { getAssistantEditorData } from "@/lib/agent/assistant";
 import { getAssistantOverviewData } from "@/lib/dashboard/data";
+
+import { AssistantEditor } from "./assistant-editor";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +22,7 @@ const flowSteps = [
 
 export default async function AssistantPage() {
   const assistant = await getAssistantOverviewData();
+  const editor = await getAssistantEditorData();
 
   return (
     <>
@@ -48,6 +52,8 @@ export default async function AssistantPage() {
         />
         <MetricCard label="Voice" value={assistant.voiceProvider} detail={assistant.model} icon={PhoneCall} tone="zinc" />
       </section>
+
+      <AssistantEditor data={editor} />
 
       <section className="grid min-w-0 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
         <SectionPanel title="Conversation flow" eyebrow="Оперативен сценарий">
