@@ -117,6 +117,55 @@ export async function createGoogleCalendarEvent(input: CreateGoogleCalendarEvent
   };
 }
 
+export type UpdateGoogleCalendarEventInput = {
+  calendarId: string | null;
+  eventId: string;
+  summary?: string;
+  description?: string | null;
+  location?: string | null;
+  startsAt: Date;
+  endsAt: Date;
+  timeZone: string;
+};
+
+// Patches an existing event so a dashboard reschedule/edit keeps Google Calendar in
+// sync (otherwise the GCal->DB sync would revert the change). No-ops and returns null
+// when Google Calendar is not configured, exactly like createGoogleCalendarEvent.
+export async function updateGoogleCalendarEvent(input: UpdateGoogleCalendarEventInput) {
+  const config = getGoogleCalendarConfig(input.calendarId);
+
+  if (!config) {
+    return null;
+  }
+
+  const url = new URL(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(config.calendarId)}/events/${encodeURIComponent(input.eventId)}`
+  );
+  url.searchParams.set("sendUpdates", "none");
+
+  const data = await googleCalendarFetch<JsonRecord>(config, url, {
+    method: "PATCH",
+    body: JSON.stringify({
+      summary: input.summary,
+      description: input.description ?? undefined,
+      location: input.location ?? undefined,
+      start: {
+        dateTime: input.startsAt.toISOString(),
+        timeZone: input.timeZone,
+      },
+      end: {
+        dateTime: input.endsAt.toISOString(),
+        timeZone: input.timeZone,
+      },
+    }),
+  });
+
+  return {
+    id: readString(data.id) ?? input.eventId,
+    htmlLink: readString(data.htmlLink),
+  };
+}
+
 function getGoogleCalendarConfig(calendarId: string | null | undefined): GoogleCalendarConfig | null {
   if (process.env.GOOGLE_CALENDAR_SYNC_ENABLED !== "true") {
     return null;
