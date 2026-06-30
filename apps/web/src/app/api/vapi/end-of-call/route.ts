@@ -12,6 +12,7 @@ import {
   getVapiMessage,
   type OrganizationResolution,
 } from "@/lib/vapi/payload";
+import { sendOwnerLeadEmail } from "@/lib/notifications/owner-email";
 
 export const runtime = "nodejs";
 
@@ -115,6 +116,7 @@ export async function POST(request: Request) {
 
     if (!existingLead) {
       await supabase.from("leads").insert(leadInsert);
+      void sendOwnerLeadEmail({ to: null, lead: leadInsert, orgName: null });
     }
   }
 

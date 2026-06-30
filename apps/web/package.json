@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test:availability": "node ./scripts/test-availability-logic.mjs",
-    "test:dashboard": "node ./scripts/test-dashboard-derived.mjs"
+    "test:dashboard": "node ./scripts/test-dashboard-derived.mjs",
+    "test:payload": "node ./scripts/test-payload-extraction.mjs",
+    "test:notify": "node ./scripts/test-owner-email.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.0",
