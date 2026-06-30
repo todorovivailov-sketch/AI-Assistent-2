@@ -26,6 +26,7 @@ export async function GET() {
         (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)
     ),
     authMode: getWebhookAuthMode(),
+    vapiConfigured: Boolean(process.env.VAPI_PRIVATE_KEY || process.env.VAPI_API_KEY),
   });
 }
 
