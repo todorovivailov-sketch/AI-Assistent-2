@@ -12,10 +12,10 @@ export function SectionPanel({
   children: ReactNode;
 }) {
   return (
-    <section className="min-w-0 rounded-lg border border-[var(--line)] bg-[var(--surface)]">
+    <section className="syn-card min-w-0 overflow-hidden">
       <div className="flex items-start justify-between gap-3 border-b border-[var(--line)] px-4 py-3">
         <div className="min-w-0">
-          {eyebrow ? <div className="font-mono text-xs uppercase text-[var(--ink-soft)]">{eyebrow}</div> : null}
+          {eyebrow ? <div className="syn-label">{eyebrow}</div> : null}
           <h2 className="mt-0.5 truncate text-sm font-semibold">{title}</h2>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}

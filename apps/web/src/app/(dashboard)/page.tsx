@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { AlertTriangle, CalendarCheck, CheckCircle2, PhoneCall } from "lucide-react";
 import Link from "next/link";
 
@@ -27,93 +28,43 @@ export default async function CommandCenterPage() {
         actions={
           <Link
             href="/appointments"
-            className="inline-flex h-9 items-center rounded-md bg-teal-700 px-3 text-sm font-medium text-white"
+            className="inline-flex h-9 items-center rounded-lg bg-[var(--accent)] px-3 text-sm font-semibold text-[var(--accent-ink)] shadow-[0_4px_14px_-4px_rgba(74,222,128,.6)] transition hover:brightness-95"
           >
             Нов час
           </Link>
         }
       />
 
-      <section className="grid min-w-0 gap-4 grid-cols-1 md:grid-cols-3">
-        {/* Card 1: Обаждания (col-span-2) */}
-        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(13,148,136,0.15)] hover:border-teal-500/50 md:col-span-2 col-span-1 bg-gradient-to-br from-teal-500/5 via-[var(--surface)] to-[var(--surface)]">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-semibold tracking-wider uppercase text-[var(--ink-soft)]">
-                Обаждания
-              </p>
-              <h3 className="mt-2 text-4xl font-bold font-mono tracking-tight bg-gradient-to-r from-teal-600 to-teal-400 bg-clip-text text-transparent dark:from-teal-400 dark:to-teal-200">
-                {data.metrics.calls24h}
-              </h3>
-            </div>
-            <span className="flex size-10 items-center justify-center rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400">
-              <PhoneCall size={20} aria-hidden="true" />
-            </span>
-          </div>
-          <p className="mt-4 text-xs font-medium text-[var(--ink-soft)]">
-            последните 24 часа
-          </p>
-        </div>
-
-        {/* Card 2: Часове днес (col-span-1) */}
-        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(37,99,235,0.15)] hover:border-blue-500/50 col-span-1 bg-gradient-to-br from-blue-500/5 via-[var(--surface)] to-[var(--surface)]">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-semibold tracking-wider uppercase text-[var(--ink-soft)]">
-                Часове днес
-              </p>
-              <h3 className="mt-2 text-4xl font-bold font-mono tracking-tight bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent dark:from-blue-400 dark:to-blue-200">
-                {data.metrics.appointmentsToday}
-              </h3>
-            </div>
-            <span className="flex size-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-              <CalendarCheck size={20} aria-hidden="true" />
-            </span>
-          </div>
-          <p className="mt-4 text-xs font-medium text-[var(--ink-soft)]">
-            потвърдени и заявени
-          </p>
-        </div>
-
-        {/* Card 3: За преглед (col-span-1) */}
-        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(217,119,6,0.15)] hover:border-amber-500/50 col-span-1 bg-gradient-to-br from-amber-500/5 via-[var(--surface)] to-[var(--surface)]">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-semibold tracking-wider uppercase text-[var(--ink-soft)]">
-                За преглед
-              </p>
-              <h3 className="mt-2 text-4xl font-bold font-mono tracking-tight bg-gradient-to-r from-amber-600 to-amber-400 bg-clip-text text-transparent dark:from-amber-400 dark:to-amber-200">
-                {data.metrics.attentionItems}
-              </h3>
-            </div>
-            <span className="flex size-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <AlertTriangle size={20} aria-hidden="true" />
-            </span>
-          </div>
-          <p className="mt-4 text-xs font-medium text-[var(--ink-soft)]">
-            задачи от разговори и часове
-          </p>
-        </div>
-
-        {/* Card 4: Booking rate (col-span-2) */}
-        <div className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:border-emerald-500/50 md:col-span-2 col-span-1 bg-gradient-to-br from-emerald-500/5 via-[var(--surface)] to-[var(--surface)]">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-semibold tracking-wider uppercase text-[var(--ink-soft)]">
-                Booking rate
-              </p>
-              <h3 className="mt-2 text-4xl font-bold font-mono tracking-tight bg-gradient-to-r from-emerald-600 to-emerald-400 bg-clip-text text-transparent dark:from-emerald-400 dark:to-emerald-200">
-                {data.metrics.bookingRate}%
-              </h3>
-            </div>
-            <span className="flex size-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 size={20} aria-hidden="true" />
-            </span>
-          </div>
-          <p className="mt-4 text-xs font-medium text-[var(--ink-soft)]">
-            записи спрямо разговори
-          </p>
-        </div>
+      <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <DashboardMetric
+          label="Обаждания"
+          value={String(data.metrics.calls24h)}
+          detail="последните 24 часа"
+          icon={<PhoneCall size={17} aria-hidden="true" />}
+          bars={[45, 62, 38, 78, 55, 88, 100]}
+        />
+        <DashboardMetric
+          label="Часове днес"
+          value={String(data.metrics.appointmentsToday)}
+          detail="потвърдени и заявени"
+          icon={<CalendarCheck size={17} aria-hidden="true" />}
+          bars={[34, 48, 41, 66, 58, 72, 64]}
+        />
+        <DashboardMetric
+          label="За преглед"
+          value={String(data.metrics.attentionItems)}
+          detail="задачи от разговори и часове"
+          icon={<AlertTriangle size={17} aria-hidden="true" />}
+          bars={[16, 24, 42, 36, 28, 40, 30]}
+          tone="warning"
+        />
+        <DashboardMetric
+          label="Booking rate"
+          value={`${data.metrics.bookingRate}%`}
+          detail="записи спрямо разговори"
+          icon={<CheckCircle2 size={17} aria-hidden="true" />}
+          bars={[30, 44, 52, 60, 68, 74, Math.max(16, data.metrics.bookingRate)]}
+        />
       </section>
 
       <section className="grid min-w-0 gap-5 xl:grid-cols-[1.15fr_0.85fr]">
@@ -121,7 +72,7 @@ export default async function CommandCenterPage() {
           title="Задачи за действие"
           eyebrow="Inbox preview"
           action={
-            <Link href="/inbox" className="text-sm font-medium text-teal-700 dark:text-teal-300">
+            <Link href="/inbox" className="text-sm font-semibold text-[var(--accent-strong)]">
               Всички
             </Link>
           }
@@ -131,7 +82,7 @@ export default async function CommandCenterPage() {
               <Link
                 key={item.id}
                 href={item.sourceHref}
-                className="grid gap-2 px-4 py-4 text-sm hover:bg-[var(--surface-muted)] md:grid-cols-[1fr_auto]"
+                className="grid gap-2 px-4 py-4 text-sm transition hover:bg-[var(--surface-muted)] md:grid-cols-[1fr_auto]"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -139,7 +90,7 @@ export default async function CommandCenterPage() {
                     <StatusBadge value={item.type} />
                   </div>
                   <div className="mt-1 truncate text-[var(--ink-soft)]">{item.detail}</div>
-                  <div className="mt-2 font-mono text-xs text-[var(--ink-soft)]">{item.phone}</div>
+                  <div className="mt-2 font-mono text-xs text-[var(--ink-muted)]">{item.phone}</div>
                 </div>
                 <StatusBadge value={item.priority === "high" ? "urgent" : item.priority} />
               </Link>
@@ -154,7 +105,7 @@ export default async function CommandCenterPage() {
           title="Следващи часове"
           eyebrow="Calendar"
           action={
-            <Link href="/appointments" className="text-sm font-medium text-teal-700 dark:text-teal-300">
+            <Link href="/appointments" className="text-sm font-semibold text-[var(--accent-strong)]">
               Календар
             </Link>
           }
@@ -169,9 +120,9 @@ export default async function CommandCenterPage() {
         <SectionPanel title="Booking funnel" eyebrow="Reports preview">
           <div className="grid grid-cols-2 gap-2 p-4 text-sm sm:grid-cols-4">
             {Object.entries(data.funnel).map(([key, value]) => (
-              <div key={key} className="rounded-md bg-[var(--surface-muted)] p-3">
-                <div className="font-mono text-2xl font-semibold">{value}</div>
-                <div className="mt-1 text-xs text-[var(--ink-soft)]">{funnelLabels[key] ?? key}</div>
+              <div key={key} className="rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] p-3">
+                <div className="font-mono text-2xl font-semibold tabular-nums">{value}</div>
+                <div className="mt-1 text-xs text-[var(--ink-muted)]">{funnelLabels[key] ?? key}</div>
               </div>
             ))}
           </div>
@@ -180,31 +131,69 @@ export default async function CommandCenterPage() {
         <SectionPanel title="AI health" eyebrow="Assistant">
           <div className="px-4 py-4">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex h-2.5 w-2.5">
-                <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping ${
+              <span
+                className={`relative flex size-2.5 rounded-full ${
                   data.health.status === "healthy"
-                    ? "bg-emerald-500"
+                    ? "bg-[var(--accent-strong)]"
                     : data.health.status === "warning"
                       ? "bg-amber-500"
                       : "bg-red-500"
-                }`} />
-                <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
-                  data.health.status === "healthy"
-                    ? "bg-emerald-500"
-                    : data.health.status === "warning"
-                      ? "bg-amber-500"
-                      : "bg-red-500"
-                }`} />
-              </div>
-              <span className="text-sm font-medium">{data.health.label}</span>
+                }`}
+              >
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-current opacity-40" />
+              </span>
+              <span className="text-sm font-semibold">{data.health.label}</span>
             </div>
             <div className="mt-2 text-sm text-[var(--ink-soft)]">{data.health.detail}</div>
-            <div className="mt-3 font-mono text-xs text-[var(--ink-soft)]">
+            <div className="mt-3 font-mono text-xs text-[var(--ink-muted)]">
               {data.assistantStatus.model} / {data.assistantStatus.voiceProvider}
             </div>
           </div>
         </SectionPanel>
       </section>
     </>
+  );
+}
+
+function DashboardMetric({
+  label,
+  value,
+  detail,
+  icon,
+  bars,
+  tone = "green",
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  icon: ReactNode;
+  bars: number[];
+  tone?: "green" | "warning";
+}) {
+  const iconClasses =
+    tone === "warning"
+      ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+      : "bg-[var(--surface-soft)] text-[var(--accent-strong)]";
+
+  return (
+    <div className="syn-card syn-card-lift min-w-0 p-6">
+      <div className="flex items-center justify-between gap-3">
+        <span className="syn-label">{label}</span>
+        <span className={`flex size-8 items-center justify-center rounded-lg ${iconClasses}`}>{icon}</span>
+      </div>
+      <div className="mt-4 font-mono text-4xl font-semibold leading-none tracking-normal tabular-nums">{value}</div>
+      <div className="mt-4 flex h-6 items-end gap-1">
+        {bars.map((height, index) => (
+          <span
+            key={`${label}-${index}`}
+            className={`flex-1 rounded-sm ${
+              index === bars.length - 1 ? "bg-[var(--accent)]" : "bg-green-100 dark:bg-green-950/60"
+            }`}
+            style={{ height: `${Math.min(Math.max(height, 10), 100)}%` }}
+          />
+        ))}
+      </div>
+      <div className="mt-2 text-xs text-[var(--ink-muted)]">{detail}</div>
+    </div>
   );
 }

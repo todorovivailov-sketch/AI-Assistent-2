@@ -1,39 +1,52 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f8fb;
-  --foreground: #151a21;
+  --background: #fdfdfd;
+  --foreground: #111827;
   --surface: #ffffff;
-  --surface-muted: #eef2f7;
-  --line: #d8dee8;
-  --ink-soft: #5b6675;
-  --accent: #0f766e;
-  --accent-strong: #115e59;
-  --warning: #b7791f;
-  --danger: #b42318;
+  --surface-muted: #f3f4f6;
+  --surface-soft: #f0fdf4;
+  --line: #e5e7eb;
+  --line-strong: #d1d5db;
+  --ink-soft: #4b5563;
+  --ink-muted: #9ca3af;
+  --accent: #4ade80;
+  --accent-strong: #16a34a;
+  --accent-ink: #052e16;
+  --warning: #d97706;
+  --danger: #dc2626;
   --info: #2563eb;
+  --shadow-card: 0 1px 2px rgba(17, 24, 39, 0.05), 0 16px 32px -22px rgba(17, 24, 39, 0.18);
+  --shadow-card-hover: 0 2px 4px rgba(17, 24, 39, 0.05), 0 22px 44px -20px rgba(17, 24, 39, 0.22);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+  --font-sans: var(--font-inter), var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter), var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #11161d;
-    --foreground: #f7f9fc;
-    --surface: #1b222b;
-    --surface-muted: #232c37;
-    --line: #334050;
-    --ink-soft: #a7b1bf;
-    --accent: #2dd4bf;
-    --accent-strong: #5eead4;
-    --warning: #f2b84b;
-    --danger: #f97066;
+    --background: #0f1411;
+    --foreground: #f9fafb;
+    --surface: #151b18;
+    --surface-muted: #1f2622;
+    --surface-soft: #102416;
+    --line: #27312c;
+    --line-strong: #3c4942;
+    --ink-soft: #d1d5db;
+    --ink-muted: #9ca3af;
+    --accent: #4ade80;
+    --accent-strong: #86efac;
+    --accent-ink: #052e16;
+    --warning: #f59e0b;
+    --danger: #f87171;
     --info: #60a5fa;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.26), 0 18px 38px -26px rgba(0, 0, 0, 0.7);
+    --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.28), 0 24px 48px -24px rgba(0, 0, 0, 0.76);
   }
 }
 
@@ -50,6 +63,7 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   letter-spacing: 0;
+  text-rendering: optimizeLegibility;
 }
 
 button,
@@ -61,7 +75,38 @@ textarea {
 }
 
 ::selection {
-  background: rgba(15, 118, 110, 0.18);
+  background: rgba(74, 222, 128, 0.32);
+}
+
+.syn-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.syn-card-lift {
+  transition: border-color 180ms ease, box-shadow 220ms ease, transform 220ms ease, background-color 180ms ease;
+}
+
+.syn-card-lift:hover {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--line));
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.syn-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.syn-focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: 2px;
 }
 
 /* Premium UI/UX Animations & Utilities */
@@ -128,4 +173,3 @@ textarea {
     #1f2937 20px
   );
 }
-

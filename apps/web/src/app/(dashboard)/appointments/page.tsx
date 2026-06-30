@@ -1,5 +1,6 @@
 import { Clock, Lock, MapPin, Phone } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import AppointmentDrawer from "@/components/appointment-drawer";
 import { CalendarToolbar } from "@/components/calendar-toolbar";
@@ -51,16 +52,16 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
       />
 
       <section className="grid gap-5 xl:grid-cols-[1fr_320px]">
-        <div className="min-w-0 overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)]">
+        <div className="syn-card min-w-0 overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3">
             <div>
               <h2 className="text-sm font-semibold">{formatWeekRange(weekStart, weekEnd)}</h2>
-              <div className="mt-1 font-mono text-xs text-[var(--ink-soft)]">08:00 - 19:00 / Europe/Sofia</div>
+              <div className="mt-1 font-mono text-xs text-[var(--ink-muted)]">08:00 - 19:00 / Europe/Sofia</div>
             </div>
             <div className="flex items-center gap-2 text-xs text-[var(--ink-soft)]">
               <span className="inline-flex size-2 rounded-full bg-blue-500" />
               Заявени
-              <span className="ml-2 inline-flex size-2 rounded-full bg-teal-600" />
+              <span className="ml-2 inline-flex size-2 rounded-full bg-[var(--accent-strong)]" />
               Потвърдени
             </div>
           </div>
@@ -72,10 +73,12 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
                 <div
                   key={day.toISOString()}
                   className={`border-b border-r border-[var(--line)] bg-[var(--surface-muted)] px-3 py-3 ${
-                    isToday(day) ? "text-teal-700 dark:text-teal-300" : ""
+                    isToday(day) ? "text-[var(--accent-strong)]" : ""
                   }`}
                 >
-                  <div className="text-xs font-medium uppercase text-[var(--ink-soft)]">{formatWeekday(day)}</div>
+                  <div className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-muted)]">
+                    {formatWeekday(day)}
+                  </div>
                   <div className="mt-1 text-lg font-semibold">{formatDayNumber(day)}</div>
                 </div>
               ))}
@@ -84,7 +87,7 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
                 {hours.map((hour) => (
                   <div
                     key={hour}
-                    className="absolute left-0 right-0 -translate-y-2 px-3 text-right font-mono text-xs text-[var(--ink-soft)]"
+                    className="absolute left-0 right-0 -translate-y-2 px-3 text-right font-mono text-xs text-[var(--ink-muted)]"
                     style={{ top: `${((hour - calendarStartHour) * 60 * 100) / calendarTotalMinutes}%` }}
                   >
                     {String(hour).padStart(2, "0")}:00
@@ -104,10 +107,10 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
           </div>
         </div>
 
-        <aside className="min-w-0 rounded-lg border border-[var(--line)] bg-[var(--surface)]">
+        <aside className="syn-card min-w-0 overflow-hidden">
           <div className="border-b border-[var(--line)] px-4 py-3">
             <h2 className="text-sm font-semibold">Предстоящи часове</h2>
-            <div className="mt-1 font-mono text-xs text-[var(--ink-soft)]">{scheduled.length} за седмицата</div>
+            <div className="mt-1 font-mono text-xs text-[var(--ink-muted)]">{scheduled.length} за седмицата</div>
           </div>
           <div className="divide-y divide-[var(--line)]">
             {scheduled.map((appointment) => (
@@ -124,7 +127,7 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
 
           {unscheduled.length > 0 ? (
             <>
-              <div className="border-y border-[var(--line)] px-4 py-3">
+              <div className="border-y border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3">
                 <h2 className="text-sm font-semibold">Без точен час</h2>
               </div>
               <div className="divide-y divide-[var(--line)]">
@@ -141,7 +144,7 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
         </aside>
       </section>
 
-      {focusedAppointment && <AppointmentDrawer key={focusedAppointment.id} appointment={focusedAppointment} />}
+      {focusedAppointment ? <AppointmentDrawer key={focusedAppointment.id} appointment={focusedAppointment} /> : null}
     </>
   );
 }
@@ -173,7 +176,7 @@ function DayColumn({
         />
       ))}
 
-      {isToday(day) ? <div className="absolute inset-y-0 left-0 w-0.5 bg-teal-600" /> : null}
+      {isToday(day) ? <div className="absolute inset-y-0 left-0 w-0.5 bg-[var(--accent-strong)]" /> : null}
     </div>
   );
 }
@@ -186,22 +189,20 @@ function AppointmentBlock({
   selected: boolean;
 }) {
   const position = getAppointmentPosition(appointment);
-  const isBlocked = [appointment.title, appointment.serviceType].some((val) =>
-    ["block", "блокиран", "обедна", "почивка"].some((term) =>
-      val?.toLowerCase().includes(term)
-    )
+  const isBlocked = [appointment.title, appointment.serviceType].some((value) =>
+    ["block", "блокиран", "обедна", "почивка"].some((term) => value?.toLowerCase().includes(term))
   );
 
   return (
     <Link
       href={`/appointments?appointment=${appointment.id}`}
-      className={`absolute left-2 right-2 overflow-hidden rounded-md border px-2 py-2 text-xs shadow-sm block hover:opacity-90 transition ${
+      className={`absolute left-2 right-2 block overflow-hidden rounded-lg border px-2 py-2 text-xs shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
         isBlocked
-          ? "border-rose-300 bg-rose-50/50 text-rose-950 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-100 bg-stripes"
+          ? "border-red-200 bg-red-50/80 text-red-950 bg-stripes dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-100"
           : appointment.status === "confirmed"
-            ? "border-teal-300 bg-teal-50 text-teal-950 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-100"
-            : "border-blue-300 bg-blue-50 text-blue-950 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100"
-      } ${selected ? "ring-2 ring-teal-700 ring-offset-2 ring-offset-[var(--surface)]" : ""}`}
+            ? "border-green-200 bg-[var(--surface-soft)] text-green-950 dark:border-green-900/50 dark:text-green-100"
+            : "border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900/50 dark:bg-blue-950/25 dark:text-blue-100"
+      } ${selected ? "ring-2 ring-[var(--accent-strong)] ring-offset-2 ring-offset-[var(--surface)]" : ""}`}
       style={{
         top: position.top,
         minHeight: 46,
@@ -209,11 +210,9 @@ function AppointmentBlock({
       }}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="font-mono flex items-center gap-1">
+        <span className="flex items-center gap-1 font-mono">
           {formatAppointmentTime(appointment)}
-          {isBlocked && (
-            <Lock size={10} className="text-rose-500 dark:text-rose-400" aria-hidden="true" />
-          )}
+          {isBlocked ? <Lock size={10} className="text-red-500" aria-hidden="true" /> : null}
         </span>
         {appointment.hasGoogleEvent ? <span className="font-mono text-[10px] opacity-70">GCal</span> : null}
       </div>
@@ -233,8 +232,8 @@ function AppointmentListItem({
   return (
     <Link
       href={`/appointments?appointment=${appointment.id}`}
-      className={`block px-4 py-4 hover:bg-slate-50 dark:hover:bg-[var(--surface-muted)] transition ${
-        selected ? "bg-teal-50/70 dark:bg-teal-950/30 font-medium" : ""
+      className={`block px-4 py-4 transition hover:bg-[var(--surface-muted)] ${
+        selected ? "bg-[var(--surface-soft)] font-medium" : ""
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -245,20 +244,26 @@ function AppointmentListItem({
         <StatusBadge value={appointment.status} />
       </div>
       <div className="mt-3 grid gap-2 text-xs text-[var(--ink-soft)]">
-        <div className="flex items-center gap-2">
-          <Clock size={14} aria-hidden="true" />
-          <span>{appointment.startsAt ? formatDateTime(appointment.startsAt) : "Няма точен час"}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Phone size={14} aria-hidden="true" />
-          <span className="font-mono">{appointment.customerPhone}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <MapPin size={14} aria-hidden="true" />
-          <span className="truncate">{appointment.location}</span>
-        </div>
+        <IconLine icon={<Clock size={14} aria-hidden="true" />}>
+          {appointment.startsAt ? formatDateTime(appointment.startsAt) : "Няма точен час"}
+        </IconLine>
+        <IconLine icon={<Phone size={14} aria-hidden="true" />}>
+          <span className="font-mono">{appointment.customerPhone ?? "Няма телефон"}</span>
+        </IconLine>
+        <IconLine icon={<MapPin size={14} aria-hidden="true" />}>
+          <span className="truncate">{appointment.location ?? "Няма адрес"}</span>
+        </IconLine>
       </div>
     </Link>
+  );
+}
+
+function IconLine({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      {icon}
+      <span className="min-w-0 truncate">{children}</span>
+    </div>
   );
 }
 
@@ -266,9 +271,7 @@ function getAppointmentPosition(appointment: DashboardAppointmentListItem) {
   const start = appointment.startsAt ? new Date(appointment.startsAt) : null;
   const end = appointment.endsAt ? new Date(appointment.endsAt) : null;
 
-  if (!start) {
-    return { top: "0%", height: "48px" };
-  }
+  if (!start) return { top: "0%", height: "48px" };
 
   const sofiaParts = getSofiaDateParts(start);
   const startMinutes = sofiaParts.hour * 60 + sofiaParts.minute;
@@ -372,17 +375,14 @@ function mergeFocusedAppointment(
 ) {
   if (!focusedAppointment) return appointments;
 
-  const merged = [
-    focusedAppointment,
-    ...appointments.filter((appointment) => appointment.id !== focusedAppointment.id),
-  ];
-
-  return merged.sort((left, right) => {
-    if (!left.startsAt && !right.startsAt) return left.customerName.localeCompare(right.customerName, "bg-BG");
-    if (!left.startsAt) return 1;
-    if (!right.startsAt) return -1;
-    return new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime();
-  });
+  return [focusedAppointment, ...appointments.filter((appointment) => appointment.id !== focusedAppointment.id)].sort(
+    (left, right) => {
+      if (!left.startsAt && !right.startsAt) return left.customerName.localeCompare(right.customerName, "bg-BG");
+      if (!left.startsAt) return 1;
+      if (!right.startsAt) return -1;
+      return new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime();
+    }
+  );
 }
 
 function getSofiaDateParts(value: Date) {

@@ -5,7 +5,7 @@ import { StatusBadge } from "@/components/status-badge";
 
 const settings = [
   {
-    title: "Zadarma number",
+    title: "Телефонен номер",
     value: "+35924372749",
     detail: "+35924372749@sip.vapi.ai",
     icon: PhoneCall,
@@ -36,14 +36,14 @@ export default function SettingsPage() {
           const Icon = item.icon;
 
           return (
-            <div key={item.title} className="min-w-0 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4">
+            <div key={item.title} className="syn-card syn-card-lift min-w-0 p-5">
               <div className="flex items-start justify-between gap-3">
-                <span className="flex size-9 items-center justify-center rounded-md bg-[var(--surface-muted)] text-[var(--ink-soft)]">
-                  <Icon size={17} aria-hidden="true" />
+                <span className="flex size-10 items-center justify-center rounded-md bg-[var(--surface-soft)] text-[var(--accent-strong)]">
+                  <Icon size={18} aria-hidden="true" />
                 </span>
                 <StatusBadge value={item.status} />
               </div>
-              <div className="mt-4 text-sm font-semibold">{item.title}</div>
+              <div className="mt-5 text-sm font-semibold">{item.title}</div>
               <div className="mt-2 break-words font-mono text-sm">{item.value}</div>
               <div className="mt-2 break-words text-sm text-[var(--ink-soft)]">{item.detail}</div>
             </div>

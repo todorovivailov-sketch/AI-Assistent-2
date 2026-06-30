@@ -33,9 +33,5 @@ function mergeFocusedConversation(
 ) {
   if (!focusedConversation) return conversations;
 
-  return [
-    focusedConversation,
-    ...conversations.filter((conversation) => conversation.id !== focusedConversation.id),
-  ];
+  return [focusedConversation, ...conversations.filter((conversation) => conversation.id !== focusedConversation.id)];
 }
-

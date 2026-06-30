@@ -8,10 +8,10 @@ export function DataTable({
   children: ReactNode;
 }) {
   return (
-    <div className="min-w-0 overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--surface)]">
+    <div className="syn-card min-w-0 overflow-x-auto">
       <div className="min-w-[720px]">
         <div
-          className="grid border-b border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-xs font-semibold uppercase text-[var(--ink-soft)]"
+          className="grid border-b border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3 font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-muted)]"
           style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
         >
           {columns.map((column) => (
@@ -35,7 +35,7 @@ export function DataRow({
 }) {
   return (
     <div
-      className={`grid items-center gap-3 px-4 py-3 text-sm ${className ?? ""}`}
+      className={`grid items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-[var(--surface-muted)] ${className ?? ""}`}
       style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
     >
       {children}

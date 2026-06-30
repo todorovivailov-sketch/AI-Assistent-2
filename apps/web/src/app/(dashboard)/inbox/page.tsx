@@ -29,7 +29,7 @@ export default async function InboxPage() {
             <div className="font-mono text-[var(--ink-soft)]">
               {item.appointmentTime ? formatDateTime(item.appointmentTime) : "-"}
             </div>
-            <Link href={item.sourceHref} className="text-sm font-medium text-teal-700 dark:text-teal-300">
+            <Link href={item.sourceHref} className="text-sm font-semibold text-[var(--accent-strong)]">
               Отвори
             </Link>
           </DataRow>

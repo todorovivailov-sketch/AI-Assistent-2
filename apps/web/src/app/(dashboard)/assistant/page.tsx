@@ -1,4 +1,4 @@
-import { Bot, CalendarCheck, PhoneCall, Settings2 } from "lucide-react";
+import { Bot, CalendarCheck, CheckCircle2, PhoneCall, Settings2 } from "lucide-react";
 
 import { MetricCard } from "@/components/metric-card";
 import { PageHeader } from "@/components/page-header";
@@ -8,12 +8,22 @@ import { getAssistantOverviewData } from "@/lib/dashboard/data";
 
 export const dynamic = "force-dynamic";
 
+const flowSteps = [
+  "Разпознава заявката без да изрежда услуги.",
+  "Пита за предпочитан ден и час.",
+  "Проверява календара преди обещание към клиента.",
+  "При свободен слот записва име, телефон и нужните детайли.",
+  "Потвърждава часа и пита дали може да съдейства с още нещо.",
+  "Завършва разговора кратко и учтиво.",
+];
+
 export default async function AssistantPage() {
   const assistant = await getAssistantOverviewData();
 
   return (
     <>
       <PageHeader eyebrow="AI конфигурация" title="Асистент" />
+
       <section className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Статус"
@@ -32,46 +42,51 @@ export default async function AssistantPage() {
         <MetricCard
           label="Tool calls 24ч"
           value={String(assistant.toolCalls24h)}
-          detail="календарни проверки и записи"
+          detail="проверки и записвания"
           icon={Settings2}
           tone="blue"
         />
-        <MetricCard
-          label="Voice"
-          value={assistant.voiceProvider}
-          detail={assistant.model}
-          icon={PhoneCall}
-          tone="zinc"
-        />
+        <MetricCard label="Voice" value={assistant.voiceProvider} detail={assistant.model} icon={PhoneCall} tone="zinc" />
       </section>
-      <section className="grid min-w-0 gap-5 xl:grid-cols-2">
-        <SectionPanel title="Conversation flow" eyebrow="Настройка">
-          <div className="space-y-3 p-4 text-sm text-[var(--ink-soft)]">
-            <div>1. Заявка</div>
-            <div>2. Ден</div>
-            <div>3. Точен час</div>
-            <div>4. Проверка в календар</div>
-            <div>5. Име, телефон, локация</div>
-            <div>6. Запис и финално потвърждение</div>
+
+      <section className="grid min-w-0 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+        <SectionPanel title="Conversation flow" eyebrow="Оперативен сценарий">
+          <div className="divide-y divide-[var(--line)]">
+            {flowSteps.map((step, index) => (
+              <div key={step} className="flex gap-3 px-4 py-4 text-sm">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--surface-soft)] font-mono text-xs font-semibold text-[var(--accent-strong)]">
+                  {index + 1}
+                </span>
+                <span className="leading-relaxed text-[var(--ink-soft)]">{step}</span>
+              </div>
+            ))}
           </div>
         </SectionPanel>
+
         <SectionPanel title="Quality review" eyebrow="Контрол">
           <div className="divide-y divide-[var(--line)]">
+            <ReviewRow label="Неясни имена и заявки" status="needs_confirmation" />
+            <ReviewRow label="Tool errors" status={assistant.toolErrors24h > 0 ? "attention" : "healthy"} />
             <div className="flex items-center justify-between gap-3 px-4 py-4 text-sm">
-              <span>Неясни имена и заявки</span>
-              <StatusBadge value="needs_confirmation" />
+              <span className="text-[var(--ink-soft)]">Webhook events 24ч</span>
+              <span className="font-mono font-semibold">{assistant.webhookEvents24h}</span>
             </div>
-            <div className="flex items-center justify-between gap-3 px-4 py-4 text-sm">
-              <span>Tool errors</span>
-              <StatusBadge value={assistant.toolErrors24h > 0 ? "attention" : "healthy"} />
-            </div>
-            <div className="flex items-center justify-between gap-3 px-4 py-4 text-sm">
-              <span>Webhook events 24ч</span>
-              <span className="font-mono text-[var(--ink-soft)]">{assistant.webhookEvents24h}</span>
+            <div className="flex items-start gap-3 px-4 py-4 text-sm text-[var(--ink-soft)]">
+              <CheckCircle2 size={17} className="mt-0.5 shrink-0 text-[var(--accent-strong)]" />
+              <span>Фокусът е бързо разбиране, кратки уточняващи въпроси и проверка в календара преди потвърждение.</span>
             </div>
           </div>
         </SectionPanel>
       </section>
     </>
+  );
+}
+
+function ReviewRow({ label, status }: { label: string; status: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-4 py-4 text-sm">
+      <span className="text-[var(--ink-soft)]">{label}</span>
+      <StatusBadge value={status} />
+    </div>
   );
 }

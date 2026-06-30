@@ -19,7 +19,8 @@ export default async function ReportsPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Управителски изглед" title="Отчети" />
+      <PageHeader eyebrow="Управленски изглед" title="Отчети" />
+
       <section className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Разговори"
@@ -50,23 +51,25 @@ export default async function ReportsPage() {
           tone="zinc"
         />
       </section>
-      <section className="grid min-w-0 gap-5 xl:grid-cols-2">
+
+      <section className="grid min-w-0 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
         <SectionPanel title="Booking funnel" eyebrow="Conversion">
           <div className="grid grid-cols-2 gap-2 p-4 text-sm sm:grid-cols-4">
             {Object.entries(reports.funnel).map(([key, value]) => (
-              <div key={key} className="rounded-md bg-[var(--surface-muted)] p-3">
+              <div key={key} className="rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] p-3">
                 <div className="font-mono text-2xl font-semibold">{value}</div>
                 <div className="mt-1 text-xs text-[var(--ink-soft)]">{funnelLabels[key] ?? key}</div>
               </div>
             ))}
           </div>
         </SectionPanel>
+
         <SectionPanel title="Services" eyebrow="Request mix">
           <div className="divide-y divide-[var(--line)]">
             {Object.entries(reports.services).map(([service, count]) => (
               <div key={service} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                <span className="truncate">{service}</span>
-                <span className="font-mono">{count}</span>
+                <span className="truncate text-[var(--ink-soft)]">{service}</span>
+                <span className="font-mono font-semibold">{count}</span>
               </div>
             ))}
             {Object.keys(reports.services).length === 0 ? (
