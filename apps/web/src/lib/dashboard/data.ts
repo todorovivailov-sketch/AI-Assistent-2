@@ -10,14 +10,11 @@ import {
   type DashboardCustomer,
   type DashboardInboxItem,
 } from "@/lib/dashboard/derived";
-import { getSupabaseServiceClient } from "@/lib/supabase/service";
+import { getActiveOrganization } from "@/lib/auth/organization";
+import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/types/database";
 
 type JsonRecord = Record<string, Json | undefined>;
-type OrganizationRow = Pick<
-  Database["public"]["Tables"]["organizations"]["Row"],
-  "id" | "name" | "slug" | "timezone"
->;
 type CallsRow = Pick<
   Database["public"]["Tables"]["calls"]["Row"],
   | "id"
@@ -179,8 +176,6 @@ export type ReportsData = {
 
 const DASHBOARD_LOOKBACK_DAYS = 14;
 const APPOINTMENT_LOOKAHEAD_DAYS = 30;
-// Temporary no-auth fallback for the first demo tenant; replace with authenticated organization resolution.
-const DEFAULT_ORGANIZATION_SLUG = "demo-hvac-company";
 const DASHBOARD_CALL_SELECT =
   "id, caller_number, disposition, status, started_at, created_at, duration_seconds, summary, structured_data, recording_url, transcript";
 const DASHBOARD_APPOINTMENT_SELECT =
@@ -344,29 +339,8 @@ export async function getAssistantOverviewData(): Promise<DashboardAssistantStat
 }
 
 async function getDashboardOrganization(): Promise<DashboardOrganization | null> {
-  const supabase = getSupabaseServiceClient();
-  const configuredSlug =
-    process.env.DASHBOARD_ORGANIZATION_SLUG ??
-    process.env.NEXT_PUBLIC_DASHBOARD_ORGANIZATION_SLUG ??
-    DEFAULT_ORGANIZATION_SLUG;
-
-  const { data, error } = await supabase
-    .from("organizations")
-    .select("id, name, slug, timezone")
-    .eq("slug", configuredSlug)
-    .maybeSingle();
-
-  if (error) {
-    logSupabaseError("Dashboard organization query failed", error);
-    return null;
-  }
-
-  if (!data) {
-    console.error(`Dashboard organization not found for slug: ${configuredSlug}`);
-    return null;
-  }
-
-  return toDashboardOrganization(data);
+  // Resolve the org from the signed-in session; RLS then scopes every query below.
+  return getActiveOrganization();
 }
 
 async function getDashboardCalls(
@@ -374,7 +348,7 @@ async function getDashboardCalls(
   limit: number,
   options: { since?: Date; until?: Date } = {}
 ): Promise<DashboardConversation[]> {
-  const supabase = getSupabaseServiceClient();
+  const supabase = await createClient();
   let query = supabase
     .from("calls")
     .select(DASHBOARD_CALL_SELECT)
@@ -399,7 +373,7 @@ async function getDashboardCallById(
   organizationId: string,
   callId: string
 ): Promise<DashboardConversation | null> {
-  const supabase = getSupabaseServiceClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("calls")
     .select(DASHBOARD_CALL_SELECT)
@@ -453,7 +427,7 @@ async function getDashboardAppointments(
     includeUnscheduledSince?: Date;
   }
 ): Promise<DashboardAppointmentRecord[]> {
-  const supabase = getSupabaseServiceClient();
+  const supabase = await createClient();
   let query = supabase
     .from("appointments")
     .select(DASHBOARD_APPOINTMENT_SELECT)
@@ -489,7 +463,7 @@ async function getDashboardAppointmentById(
   organizationId: string,
   appointmentId: string
 ): Promise<DashboardAppointmentRecord | null> {
-  const supabase = getSupabaseServiceClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("appointments")
     .select(DASHBOARD_APPOINTMENT_SELECT)
@@ -506,7 +480,7 @@ async function getDashboardAppointmentById(
 }
 
 async function getCallsCountSince(organizationId: string, since: Date): Promise<number> {
-  const supabase = getSupabaseServiceClient();
+  const supabase = await createClient();
   const { count, error } = await supabase
     .from("calls")
     .select("id", { count: "exact", head: true })
@@ -522,7 +496,7 @@ async function getCallsCountSince(organizationId: string, since: Date): Promise<
 }
 
 async function getAssistantStatus(organization: DashboardOrganization): Promise<DashboardAssistantStatus> {
-  const supabase = getSupabaseServiceClient();
+  const supabase = await createClient();
   const since24h = daysFromNow(-1).toISOString();
   const [assistantResult, calendarResult, latestWebhookResult, webhookCountResult, toolCallsResult, toolErrorsResult] =
     await Promise.all([
@@ -595,15 +569,6 @@ async function getAssistantStatus(organization: DashboardOrganization): Promise<
     lastWebhookReceivedAt: latestWebhook?.received_at ?? null,
     toolCalls24h: toolCallsResult.count ?? 0,
     toolErrors24h: toolErrorsResult.count ?? 0,
-  };
-}
-
-function toDashboardOrganization(row: OrganizationRow): DashboardOrganization {
-  return {
-    id: row.id,
-    name: row.name,
-    slug: row.slug,
-    timezone: row.timezone,
   };
 }
 
