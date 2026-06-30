@@ -1,24 +1,17 @@
-import { redirect } from "next/navigation";
+import { PageHeader } from "@/components/page-header";
+import { getLeadsData } from "@/lib/dashboard/data";
 
-type LeadsRedirectPageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
+import { LeadsBoard } from "./leads-board";
 
-export default async function LeadsRedirectPage({ searchParams }: LeadsRedirectPageProps) {
-  redirect(`/customers${formatSearchSuffix(await searchParams)}`);
-}
+export const dynamic = "force-dynamic";
 
-function formatSearchSuffix(params: Record<string, string | string[] | undefined> | undefined) {
-  const search = new URLSearchParams();
+export default async function LeadsPage() {
+  const leads = await getLeadsData();
 
-  for (const [key, value] of Object.entries(params ?? {})) {
-    if (Array.isArray(value)) {
-      value.forEach((item) => search.append(key, item));
-    } else if (value) {
-      search.set(key, value);
-    }
-  }
-
-  const query = search.toString();
-  return query ? `?${query}` : "";
+  return (
+    <>
+      <PageHeader eyebrow="CRM" title="Запитвания" />
+      <LeadsBoard leads={leads} />
+    </>
+  );
 }
