@@ -7,6 +7,7 @@ import {
   ChartNoAxesCombined,
   Inbox,
   LayoutDashboard,
+  LogOut,
   PhoneCall,
   Plus,
   Search,
@@ -17,6 +18,8 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+
+import { signOut } from "@/app/login/actions";
 
 const navItems = [
   { href: "/", label: "Работно табло", icon: LayoutDashboard },
@@ -40,7 +43,7 @@ const routeMeta: Record<string, { eyebrow: string; title: string; sub: string }>
   "/settings": { eyebrow: "Контрол", title: "Настройки", sub: "интеграции и достъп" },
 };
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, userEmail }: { children: ReactNode; userEmail: string | null }) {
   const pathname = usePathname();
   const [activeCall, setActiveCall] = useState<{ id: string; phone: string } | null>(null);
   const currentMeta = routeMeta[pathname] ?? routeMeta["/"];
@@ -101,10 +104,20 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="flex size-[34px] shrink-0 items-center justify-center rounded-lg bg-[var(--foreground)] text-xs font-semibold text-[var(--surface)]">
               AI
             </span>
-            <div className="min-w-0 leading-tight">
-              <div className="truncate text-[13px] font-semibold">AI Receptionist</div>
+            <div className="min-w-0 flex-1 leading-tight">
+              <div className="truncate text-[13px] font-semibold">{userEmail ?? "AI Receptionist"}</div>
               <div className="truncate font-mono text-[10.5px] text-[var(--ink-muted)]">+359 2 437 2749</div>
             </div>
+            <form action={signOut}>
+              <button
+                type="submit"
+                title="Изход"
+                aria-label="Изход"
+                className="flex size-8 items-center justify-center rounded-lg text-[var(--ink-soft)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+              >
+                <LogOut size={16} aria-hidden="true" />
+              </button>
+            </form>
           </div>
         </div>
       </aside>

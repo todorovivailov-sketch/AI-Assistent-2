@@ -1,9 +1,15 @@
 import { AppShell } from "@/components/app-shell";
+import { createClient } from "@/lib/supabase/server";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <AppShell>{children}</AppShell>;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return <AppShell userEmail={user?.email ?? null}>{children}</AppShell>;
 }
