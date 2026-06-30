@@ -39,59 +39,70 @@ if (!url || !anon) {
 
 const sb = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
 
-const { data: auth, error: authErr } = await sb.auth.signInWithPassword({ email, password });
-if (authErr || !auth?.user) {
-  console.error(`AUTH FAIL: ${authErr?.message ?? "no user returned"}`);
-  process.exit(1);
-}
-console.log(`auth ok: signed in as ${email}`);
+async function main() {
+  const { data: auth, error: authErr } = await sb.auth.signInWithPassword({ email, password });
+  if (authErr || !auth?.user) {
+    console.error(`AUTH FAIL: ${authErr?.message ?? "no user returned"}`);
+    process.exitCode = 1;
+    return;
+  }
+  console.log(`auth ok: signed in as ${email}`);
 
-const { data: memberships, error: mErr } = await sb
-  .from("organization_members")
-  .select("organization_id, role");
-if (mErr) {
-  console.error(`organization_members RLS error: ${mErr.message}`);
-  process.exit(1);
-}
-console.log(
-  `memberships visible: ${memberships?.length ?? 0}` +
-    (memberships?.length ? ` (roles: ${memberships.map((m) => m.role).join(", ")})` : "")
-);
+  const { data: memberships, error: mErr } = await sb
+    .from("organization_members")
+    .select("organization_id, role");
+  if (mErr) {
+    console.error(`organization_members RLS error: ${mErr.message}`);
+    process.exitCode = 1;
+    return;
+  }
+  console.log(
+    `memberships visible: ${memberships?.length ?? 0}` +
+      (memberships?.length ? ` (roles: ${memberships.map((m) => m.role).join(", ")})` : "")
+  );
 
-const { data: orgs, error: oErr } = await sb
-  .from("organizations")
-  .select("id, name, slug, timezone");
-if (oErr) {
-  console.error(`organizations RLS error: ${oErr.message}`);
-  process.exit(1);
-}
-console.log(
-  `organizations visible: ${orgs?.length ?? 0}` +
-    (orgs?.length ? ` -> ${orgs.map((o) => o.slug).join(", ")}` : "")
-);
+  const { data: orgs, error: oErr } = await sb
+    .from("organizations")
+    .select("id, name, slug, timezone");
+  if (oErr) {
+    console.error(`organizations RLS error: ${oErr.message}`);
+    process.exitCode = 1;
+    return;
+  }
+  console.log(
+    `organizations visible: ${orgs?.length ?? 0}` +
+      (orgs?.length ? ` -> ${orgs.map((o) => o.slug).join(", ")}` : "")
+  );
 
-const { count: callsCount, error: cErr } = await sb
-  .from("calls")
-  .select("id", { count: "exact", head: true });
-if (cErr) {
-  console.error(`calls RLS error: ${cErr.message}`);
-  process.exit(1);
-}
-console.log(`calls visible: ${callsCount ?? 0}`);
+  const { count: callsCount, error: cErr } = await sb
+    .from("calls")
+    .select("id", { count: "exact", head: true });
+  if (cErr) {
+    console.error(`calls RLS error: ${cErr.message}`);
+    process.exitCode = 1;
+    return;
+  }
+  console.log(`calls visible: ${callsCount ?? 0}`);
 
-const { count: apptCount, error: aErr } = await sb
-  .from("appointments")
-  .select("id", { count: "exact", head: true });
-if (aErr) {
-  console.error(`appointments RLS error: ${aErr.message}`);
-  process.exit(1);
-}
-console.log(`appointments visible: ${apptCount ?? 0}`);
+  const { count: apptCount, error: aErr } = await sb
+    .from("appointments")
+    .select("id", { count: "exact", head: true });
+  if (aErr) {
+    console.error(`appointments RLS error: ${aErr.message}`);
+    process.exitCode = 1;
+    return;
+  }
+  console.log(`appointments visible: ${apptCount ?? 0}`);
 
-const pass = (memberships?.length ?? 0) >= 1 && (orgs?.length ?? 0) >= 1;
-console.log(
-  pass
-    ? "\nRESULT: PASS — RLS resolves the user's org; the dashboard will scope correctly."
-    : "\nRESULT: FAIL — no membership/org visible; check the organization_members seed + RLS policies."
-);
-process.exit(pass ? 0 : 1);
+  const pass = (memberships?.length ?? 0) >= 1 && (orgs?.length ?? 0) >= 1;
+  console.log(
+    pass
+      ? "\nRESULT: PASS — RLS resolves the user's org; the dashboard will scope correctly."
+      : "\nRESULT: FAIL — no membership/org visible; check the organization_members seed + RLS policies."
+  );
+  if (!pass) process.exitCode = 1;
+}
+
+await main();
+// Let undici sockets finish closing before forcing exit (avoids a libuv assert on Windows).
+setTimeout(() => process.exit(process.exitCode ?? 0), 150);
