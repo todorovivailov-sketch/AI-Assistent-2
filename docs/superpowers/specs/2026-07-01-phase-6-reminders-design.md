@@ -106,9 +106,9 @@ All take plain data and a `now: Date`, so they're deterministic and unit-tested 
 
 Mirrors `owner-email.ts`: graceful no-op when unconfigured, isolated driver.
 
-- `isSmsConfigured()` → all of `ZADARMA_KEY`, `ZADARMA_SECRET`, `ZADARMA_SMS_SENDER` present.
+- `isSmsConfigured()` → all of `ZADARMA_API_KEY`, `ZADARMA_API_SECRET`, `ZADARMA_SMS_SENDER` present.
 - `sendSms({ to, text })` → `{ sent: boolean; skipped?: boolean; error?: string }`. If not configured → `{ sent:false, skipped:true }`.
-- **Zadarma driver** (proven this session against `/v1/info/balance/`): signed `POST /v1/sms/send/` with form params `number` (normalized international, digits only), `message` (text), `caller_id` (`ZADARMA_SMS_SENDER`). Signature: `sign = base64( hmacSha1Hex( method + sortedParamString + md5(sortedParamString), secret ) )`, header `Authorization: {ZADARMA_KEY}:{sign}`. Response `{ status: 'success' | 'error', message? }`.
+- **Zadarma driver** (proven this session against `/v1/info/balance/`): signed `POST /v1/sms/send/` with form params `number` (normalized international, digits only), `message` (text), `caller_id` (`ZADARMA_SMS_SENDER`). Signature: `sign = base64( hmacSha1Hex( method + sortedParamString + md5(sortedParamString), secret ) )`, header `Authorization: {ZADARMA_API_KEY}:{sign}`. Response `{ status: 'success' | 'error', message? }`.
 - **Phone normalization** `normalizeMsisdn(phone)` → strip spaces/`()-`; `+359…`/`00359…` → `359…`; local `0XXXXXXXXX` → `359XXXXXXXXX` (BG default). The plan first checks for an existing normalizer in `lib/vapi/payload.ts` and reuses it if present.
 
 ## Owner agenda email — `lib/notifications/owner-email.ts` (extended)
@@ -141,7 +141,7 @@ Add alongside the existing sync cron (result: 2 crons — within Hobby's limit):
 ## Environment variables
 
 **New (Vercel + `.env.local`):**
-- `ZADARMA_KEY`, `ZADARMA_SECRET`, `ZADARMA_SMS_SENDER`
+- `ZADARMA_API_KEY`, `ZADARMA_API_SECRET`, `ZADARMA_SMS_SENDER`
 
 **Reused (already set):** `CRON_SECRET`, `RESEND_API_KEY`, `OWNER_NOTIFICATION_EMAIL`, `OWNER_NOTIFICATION_FROM`.
 
