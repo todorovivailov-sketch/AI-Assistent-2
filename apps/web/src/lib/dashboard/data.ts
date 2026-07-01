@@ -3,6 +3,7 @@ import {
   deriveCustomers,
   deriveInboxItems,
   getAssistantHealth,
+  isBooking,
   type DashboardAppointmentInput,
   type DashboardAssistantHealth,
   type DashboardBookingFunnel,
@@ -10,6 +11,15 @@ import {
   type DashboardCustomer,
   type DashboardInboxItem,
 } from "@/lib/dashboard/derived";
+import {
+  buildPriceIndex,
+  calculateRevenue,
+  emptyRevenue,
+  priceForServiceType,
+  type RevenueBusinessHour,
+  type RevenueServiceInput,
+  type RevenueSummary,
+} from "@/lib/dashboard/revenue";
 import { getActiveOrganization } from "@/lib/auth/organization";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/types/database";
@@ -208,6 +218,17 @@ export type ReportsData = {
   };
   outcomes: Record<string, number>;
   services: Record<string, number>;
+  revenue: RevenueSummary;
+};
+
+export type ReportsExportRow = {
+  customerName: string;
+  customerPhone: string;
+  serviceType: string;
+  startsAt: string | null;
+  status: string;
+  estimatedValue: number | null;
+  currency: string | null;
 };
 
 const DASHBOARD_LOOKBACK_DAYS = 14;
@@ -374,18 +395,38 @@ export async function getLeadsData(limit = 200): Promise<DashboardLeadListItem[]
   return (data ?? []).map(toLeadListItem);
 }
 
-export async function getReportsData(): Promise<ReportsData> {
+export async function getReportsData(
+  range: { from: Date; to: Date } = { from: daysFromNow(-30), to: new Date() }
+): Promise<ReportsData> {
   const organization = await getDashboardOrganization();
   if (!organization) return getEmptyReportsData();
 
-  const since = daysFromNow(-DASHBOARD_LOOKBACK_DAYS);
-  const now = new Date();
-  const [calls, appointments] = await Promise.all([
-    getDashboardCalls(organization.id, 500, { since, until: now }),
-    getReportingAppointments(organization.id, 500, since, now),
+  const { from, to } = range;
+  const [calls, appointments, services, businessHours, leadsCount] = await Promise.all([
+    getDashboardCalls(organization.id, 500, { since: from, until: to }),
+    getReportingAppointments(organization.id, 500, from, to),
+    getRevenueServices(organization.id),
+    getRevenueBusinessHours(organization.id),
+    getLeadsCountInRange(organization.id, from, to),
   ]);
+
   const funnel = calculateBookingFunnel({ calls, appointments });
   const totalDurationSeconds = calls.reduce((sum, call) => sum + (call.durationSeconds ?? 0), 0);
+
+  const bookedAppointments = appointments.filter(isBooking);
+  const startTimes = await getCallStartTimesByVapiId(
+    organization.id,
+    bookedAppointments.map((appointment) => appointment.vapiCallId ?? "")
+  );
+  const revenue = calculateRevenue({
+    bookings: bookedAppointments.map((appointment) => ({
+      serviceType: appointment.serviceType,
+      callStartedAt: appointment.vapiCallId ? startTimes.get(appointment.vapiCallId) ?? null : null,
+    })),
+    leadsCount,
+    services,
+    businessHours,
+  });
 
   return {
     funnel,
@@ -406,7 +447,103 @@ export async function getReportsData(): Promise<ReportsData> {
       ...appointments.map((appointment) => appointment.serviceType),
       ...calls.map((call) => call.serviceType),
     ]),
+    revenue,
   };
+}
+
+export async function getReportsExportRows(range: { from: Date; to: Date }): Promise<ReportsExportRow[]> {
+  const organization = await getDashboardOrganization();
+  if (!organization) return [];
+
+  const [appointments, services] = await Promise.all([
+    getReportingAppointments(organization.id, 500, range.from, range.to),
+    getRevenueServices(organization.id),
+  ]);
+  const index = buildPriceIndex(services);
+
+  return appointments.filter(isBooking).map((appointment) => ({
+    customerName: appointment.customerName ?? "",
+    customerPhone: appointment.customerPhone ?? "",
+    serviceType: appointment.serviceType ?? "",
+    startsAt: appointment.startsAt,
+    status: appointment.status,
+    estimatedValue: priceForServiceType(appointment.serviceType, index),
+    currency: index.currency,
+  }));
+}
+
+async function getRevenueServices(organizationId: string): Promise<RevenueServiceInput[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("services")
+    .select("name, price_min, price_max, currency")
+    .eq("organization_id", organizationId);
+  if (error) {
+    logSupabaseError("Reports services query failed", error);
+    return [];
+  }
+  return (data ?? []).map((row) => ({
+    name: row.name ?? "",
+    priceMin: row.price_min,
+    priceMax: row.price_max,
+    currency: row.currency ?? "",
+  }));
+}
+
+async function getRevenueBusinessHours(organizationId: string): Promise<RevenueBusinessHour[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("business_hours")
+    .select("weekday, opens_at, closes_at, is_closed")
+    .eq("organization_id", organizationId);
+  if (error) {
+    logSupabaseError("Reports business hours query failed", error);
+    return [];
+  }
+  return (data ?? []).map((row) => ({
+    weekday: row.weekday,
+    opensAt: row.opens_at,
+    closesAt: row.closes_at,
+    isClosed: Boolean(row.is_closed),
+  }));
+}
+
+async function getLeadsCountInRange(organizationId: string, from: Date, to: Date): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("leads")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
+    .gte("created_at", from.toISOString())
+    .lte("created_at", to.toISOString());
+  if (error) {
+    logSupabaseError("Reports leads count query failed", error);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+async function getCallStartTimesByVapiId(
+  organizationId: string,
+  vapiCallIds: string[]
+): Promise<Map<string, string>> {
+  const ids = Array.from(new Set(vapiCallIds.filter((value): value is string => Boolean(value))));
+  const map = new Map<string, string>();
+  if (ids.length === 0) return map;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("calls")
+    .select("vapi_call_id, started_at")
+    .eq("organization_id", organizationId)
+    .in("vapi_call_id", ids);
+  if (error) {
+    logSupabaseError("Reports call start-times query failed", error);
+    return map;
+  }
+  for (const row of data ?? []) {
+    if (row.vapi_call_id && row.started_at) map.set(row.vapi_call_id, row.started_at);
+  }
+  return map;
 }
 
 export async function getAssistantOverviewData(): Promise<DashboardAssistantStatus> {
@@ -867,6 +1004,7 @@ function getEmptyReportsData(): ReportsData {
     },
     outcomes: {},
     services: {},
+    revenue: emptyRevenue(),
   };
 }
 

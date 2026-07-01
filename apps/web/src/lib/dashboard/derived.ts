@@ -389,7 +389,7 @@ function isCalendarRelevantRequest(call: DashboardCallInput): boolean {
   );
 }
 
-function isBooking(appointment: DashboardAppointmentInput): boolean {
+export function isBooking(appointment: DashboardAppointmentInput): boolean {
   return BOOKING_STATUSES.has(readLower(appointment.status)) && !CANCELLED_STATUSES.has(readLower(appointment.status));
 }
 
