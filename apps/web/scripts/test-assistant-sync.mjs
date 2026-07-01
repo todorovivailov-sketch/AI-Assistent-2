@@ -21,7 +21,7 @@ function loadModule(relParts) {
 }
 
 const { buildSyncedModel } = await loadModule(["src", "lib", "vapi", "assistant-client.ts"]);
-const { parseAssistantForm } = await loadModule(["src", "lib", "agent", "assistant-form.ts"]);
+const { parseAgentBehaviorForm } = await loadModule(["src", "lib", "agent", "assistant-form.ts"]);
 
 // --- buildSyncedModel preserves model config + swaps the system message ---
 const current = {
@@ -54,15 +54,16 @@ const synced3 = buildSyncedModel({ provider: "p", model: "m", messages: [] }, "S
 assert.ok(!("temperature" in synced3), "temperature omitted when absent");
 assert.ok(!("toolIds" in synced3), "toolIds omitted when absent");
 
-// --- parseAssistantForm ---
+// --- parseAgentBehaviorForm ---
 const form = (map) => ({ get: (k) => (k in map ? map[k] : null) });
-assert.equal(parseAssistantForm(form({ system_prompt: "p" })).error, "name_required", "name required");
-assert.equal(parseAssistantForm(form({ name: "n" })).error, "prompt_required", "prompt required (no blanking)");
-const ok = parseAssistantForm(form({ name: "  Бот  ", system_prompt: "  Промпт  ", first_message: " Здравей " }));
-assert.equal(ok.error, undefined, "valid form");
-assert.equal(ok.values.name, "Бот", "name trimmed");
-assert.equal(ok.values.systemPrompt, "Промпт", "prompt trimmed");
-assert.equal(ok.values.firstMessage, "Здравей", "greeting trimmed");
-assert.equal(parseAssistantForm(form({ name: "n", system_prompt: "p" })).values.firstMessage, "", "greeting may be empty");
+assert.equal(parseAgentBehaviorForm(form({ base_prompt: "p" })).error, "name_required", "name required");
+assert.equal(parseAgentBehaviorForm(form({ name: "n" })).error, "base_prompt_required", "base required (no blanking)");
+const okb = parseAgentBehaviorForm(form({ name: "  Бот  ", base_prompt: "  База  ", first_message: " Здравей ", guardrails: " Правило " }));
+assert.equal(okb.error, undefined, "valid form");
+assert.equal(okb.values.name, "Бот", "name trimmed");
+assert.equal(okb.values.basePrompt, "База", "base trimmed");
+assert.equal(okb.values.firstMessage, "Здравей", "greeting trimmed");
+assert.equal(okb.values.guardrails, "Правило", "guardrails trimmed");
+assert.equal(parseAgentBehaviorForm(form({ name: "n", base_prompt: "p" })).values.guardrails, "", "guardrails may be empty");
 
 console.log("assistant-sync checks passed");
