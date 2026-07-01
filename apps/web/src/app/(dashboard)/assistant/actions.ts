@@ -7,7 +7,9 @@ import { parseAgentBehaviorForm } from "@/lib/agent/assistant-form";
 import { parseServiceForm } from "@/lib/agent/service-form";
 import { parseBusinessHoursForm } from "@/lib/agent/business-hours-form";
 import { parseServiceAreaForm } from "@/lib/agent/service-area-form";
-import { composeSystemPrompt, renderBusinessContext, DEFAULT_BASE_PROMPT } from "@/lib/agent/prompt-composer";
+import { parseDocumentForm } from "@/lib/agent/document-form";
+import { uploadVapiFile, createQueryTool, updateQueryToolFiles } from "@/lib/vapi/knowledge-base-client";
+import { composeSystemPrompt, renderBusinessContext, renderKnowledgeSection, DEFAULT_BASE_PROMPT } from "@/lib/agent/prompt-composer";
 import { createClient } from "@/lib/supabase/server";
 import { syncAssistantToVapi } from "@/lib/vapi/assistant-client";
 
@@ -110,7 +112,46 @@ export async function deleteServiceArea(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-// ---- Publish: compose from current facts, push to Vapi (first), then persist the composed prompt ----
+// ---- Documents (Vapi Knowledge Base) ----
+export async function uploadDocument(formData: FormData): Promise<ActionResult> {
+  const gate = await requireAdmin();
+  if ("error" in gate) return { ok: false, error: gate.error };
+  const parsed = parseDocumentForm(formData);
+  if (parsed.error || !parsed.values || !parsed.file) return { ok: false, error: parsed.error ?? "invalid" };
+
+  let uploaded;
+  try {
+    uploaded = await uploadVapiFile(parsed.file as File, parsed.values.name);
+  } catch (error) {
+    console.error("Vapi file upload failed:", error);
+    return { ok: false, error: "vapi_upload_failed" };
+  }
+
+  const { error } = await gate.supabase.from("documents").insert({
+    organization_id: gate.org.id,
+    name: parsed.values.name,
+    kind: parsed.values.kind,
+    vapi_file_id: uploaded.id,
+    bytes: uploaded.bytes,
+    mimetype: uploaded.mimetype,
+    status: "active",
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/assistant");
+  return { ok: true };
+}
+
+export async function deleteDocument(id: string): Promise<ActionResult> {
+  const gate = await requireAdmin();
+  if ("error" in gate) return { ok: false, error: gate.error };
+  // Removes the DB row (double-gated on id + org). The live query tool is corrected on the next Publish.
+  const { error } = await gate.supabase.from("documents").delete().eq("id", id).eq("organization_id", gate.org.id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/assistant");
+  return { ok: true };
+}
+
+// ---- Publish: compose from current facts + documents, reconcile the query tool, push to Vapi (first), then persist ----
 export async function publishAssistant(): Promise<ActionResult> {
   const gate = await requireAdmin();
   if ("error" in gate) return { ok: false, error: gate.error };
@@ -118,16 +159,17 @@ export async function publishAssistant(): Promise<ActionResult> {
 
   const { data: row } = await supabase
     .from("assistants")
-    .select("id, vapi_assistant_id, name, first_message, base_prompt, guardrails")
+    .select("id, vapi_assistant_id, name, first_message, base_prompt, guardrails, vapi_query_tool_id")
     .eq("organization_id", org.id)
     .limit(1)
     .maybeSingle();
   if (!row?.vapi_assistant_id) return { ok: false, error: "no_assistant" };
 
-  const [{ data: services }, { data: hours }, { data: areas }] = await Promise.all([
+  const [{ data: services }, { data: hours }, { data: areas }, { data: documents }] = await Promise.all([
     supabase.from("services").select("name, description, status").eq("organization_id", org.id),
     supabase.from("business_hours").select("weekday, opens_at, closes_at, is_closed").eq("organization_id", org.id),
     supabase.from("service_areas").select("city, region, status").eq("organization_id", org.id),
+    supabase.from("documents").select("vapi_file_id, kind, status").eq("organization_id", org.id).eq("status", "active"),
   ]);
 
   const base = row.base_prompt ?? DEFAULT_BASE_PROMPT;
@@ -138,20 +180,42 @@ export async function publishAssistant(): Promise<ActionResult> {
     hours: hours ?? [],
     areas: areas ?? [],
   });
-  const composed = composeSystemPrompt({ base, businessContext, guardrails });
+  const knowledge = renderKnowledgeSection({
+    documents: (documents ?? []).map((d) => ({ kind: d.kind, status: d.status })),
+  });
+  const composed = composeSystemPrompt({ base, businessContext, knowledge, guardrails });
+
+  const desiredFileIds = (documents ?? []).map((d) => d.vapi_file_id).filter((x): x is string => Boolean(x));
+  let queryToolId = row.vapi_query_tool_id ?? null;
 
   try {
-    await syncAssistantToVapi(row.vapi_assistant_id, {
-      name: row.name,
-      firstMessage: row.first_message ?? "",
-      systemPrompt: composed,
-    });
+    if (desiredFileIds.length > 0) {
+      if (queryToolId) await updateQueryToolFiles(queryToolId, desiredFileIds, org.name);
+      else queryToolId = (await createQueryTool(desiredFileIds, org.name)).id;
+      await syncAssistantToVapi(row.vapi_assistant_id, {
+        name: row.name,
+        firstMessage: row.first_message ?? "",
+        systemPrompt: composed,
+        addToolIds: [queryToolId],
+      });
+    } else {
+      await syncAssistantToVapi(row.vapi_assistant_id, {
+        name: row.name,
+        firstMessage: row.first_message ?? "",
+        systemPrompt: composed,
+        ...(queryToolId ? { removeToolIds: [queryToolId] } : {}),
+      });
+      queryToolId = null; // detached; a fresh tool is created when documents return
+    }
   } catch (error) {
     console.error("Vapi publish failed:", error);
     return { ok: false, error: "vapi_sync_failed" };
   }
 
-  const { error } = await supabase.from("assistants").update({ system_prompt: composed }).eq("id", row.id);
+  const { error } = await supabase
+    .from("assistants")
+    .update({ system_prompt: composed, vapi_query_tool_id: queryToolId })
+    .eq("id", row.id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/assistant");
   return { ok: true };
