@@ -58,6 +58,8 @@ export type Database = {
           voice_id: string | null;
           first_message: string | null;
           system_prompt: string | null;
+          base_prompt: string | null;
+          guardrails: string | null;
           status: string;
           created_at: string;
           updated_at: string;
@@ -73,6 +75,8 @@ export type Database = {
           voice_id?: string | null;
           first_message?: string | null;
           system_prompt?: string | null;
+          base_prompt?: string | null;
+          guardrails?: string | null;
           status?: string;
           created_at?: string;
           updated_at?: string;
@@ -152,6 +156,54 @@ export type Database = {
           opens_at?: string | null;
           closes_at?: string | null;
           is_closed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        }
+      >;
+      services: PublicTable<
+        {
+          id: string;
+          organization_id: string;
+          name: string;
+          description: string | null;
+          duration_minutes: number;
+          price_min: number | null;
+          price_max: number | null;
+          currency: string;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        },
+        {
+          id?: string;
+          organization_id: string;
+          name: string;
+          description?: string | null;
+          duration_minutes?: number;
+          price_min?: number | null;
+          price_max?: number | null;
+          currency?: string;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        }
+      >;
+      service_areas: PublicTable<
+        {
+          id: string;
+          organization_id: string;
+          city: string;
+          region: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        },
+        {
+          id?: string;
+          organization_id: string;
+          city: string;
+          region?: string | null;
+          status?: string;
           created_at?: string;
           updated_at?: string;
         }
