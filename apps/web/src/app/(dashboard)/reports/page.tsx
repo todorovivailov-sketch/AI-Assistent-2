@@ -1,9 +1,12 @@
-import { BarChart3, CalendarCheck, PhoneCall, Timer } from "lucide-react";
+import { BarChart3, CalendarCheck, Coins, MoonStar, PhoneCall, TrendingUp, Wallet } from "lucide-react";
 
 import { MetricCard } from "@/components/metric-card";
 import { PageHeader } from "@/components/page-header";
 import { SectionPanel } from "@/components/section-panel";
 import { getReportsData } from "@/lib/dashboard/data";
+import { parseReportsRange } from "@/lib/dashboard/reports-range";
+
+import { RangeControl } from "./range-control";
 
 export const dynamic = "force-dynamic";
 
@@ -14,40 +17,71 @@ const funnelLabels: Record<string, string> = {
   bookings: "Записи",
 };
 
-export default async function ReportsPage() {
-  const reports = await getReportsData();
+function money(value: number | null, currency: string | null): string {
+  if (value === null) return "—";
+  return `${value.toLocaleString("bg-BG")} ${currency ?? ""}`.trim();
+}
+
+type ReportsPageProps = {
+  searchParams?: Promise<{ range?: string; from?: string; to?: string }>;
+};
+
+export default async function ReportsPage({ searchParams }: ReportsPageProps) {
+  const params = await searchParams;
+  const range = parseReportsRange({ range: params?.range, from: params?.from, to: params?.to });
+
+  const fromLabel = range.from.toISOString().slice(0, 10);
+  const toLabel = range.to.toISOString().slice(0, 10);
+  const exportHref = `/api/reports/export?range=${range.preset}&from=${fromLabel}&to=${toLabel}`;
+
+  const reports = await getReportsData({ from: range.from, to: range.to });
+  const { revenue } = reports;
 
   return (
     <>
       <PageHeader eyebrow="Управленски изглед" title="Отчети" />
 
-      <section className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <RangeControl preset={range.preset} from={fromLabel} to={toLabel} exportHref={exportHref} />
+
+      <section className="grid min-w-0 gap-3 md:grid-cols-3">
         <MetricCard
-          label="Разговори"
-          value={String(reports.totals.calls)}
-          detail="последни 14 дни"
-          icon={PhoneCall}
+          label="Записани приходи"
+          value={money(revenue.bookedValue, revenue.currency)}
+          detail={`${revenue.bookedCount} записа за периода`}
+          icon={Wallet}
           tone="teal"
         />
         <MetricCard
-          label="Записи"
-          value={String(reports.totals.bookings)}
-          detail="заявени и потвърдени"
-          icon={CalendarCheck}
+          label="Пайплайн (потенциал)"
+          value={money(revenue.pipelineValue, revenue.currency)}
+          detail="всички уловени лийдове"
+          icon={TrendingUp}
           tone="blue"
         />
         <MetricCard
-          label="Квалифицирани"
-          value={String(reports.totals.qualified)}
-          detail="с ясна заявка"
-          icon={BarChart3}
+          label="Спасени извън работно време"
+          value={revenue.afterHoursCountable ? money(revenue.afterHoursValue, revenue.currency) : "—"}
+          detail={revenue.afterHoursCountable ? "записи от обаждания извън работно време" : "задай работно време"}
+          icon={MoonStar}
           tone="amber"
         />
+      </section>
+
+      {revenue.unpricedBookings > 0 ? (
+        <p className="text-xs text-[var(--ink-soft)]">
+          {revenue.unpricedBookings} записа без цена на услугата — добави цени в „Асистент → Услуги" за пълна картина.
+        </p>
+      ) : null}
+
+      <section className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Разговори" value={String(reports.totals.calls)} detail="за периода" icon={PhoneCall} tone="teal" />
+        <MetricCard label="Записи" value={String(reports.totals.bookings)} detail="заявени и потвърдени" icon={CalendarCheck} tone="blue" />
+        <MetricCard label="Квалифицирани" value={String(reports.totals.qualified)} detail="с ясна заявка" icon={BarChart3} tone="amber" />
         <MetricCard
-          label="Средна прод."
-          value={`${reports.totals.averageDurationSeconds}s`}
-          detail="разговор"
-          icon={Timer}
+          label="Ср. стойност/запис"
+          value={money(revenue.avgBookingValue, revenue.currency)}
+          detail="оценка"
+          icon={Coins}
           tone="zinc"
         />
       </section>
