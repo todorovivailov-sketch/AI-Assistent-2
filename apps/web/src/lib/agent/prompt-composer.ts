@@ -9,9 +9,11 @@ type DocFact = { kind: string; status: string };
 const KB_TOOL_NAME = "business_docs";
 
 // Fallback only for assistants with no stored base_prompt (existing rows are seeded by migration 004).
+// NOTE: the price policy is intentionally NOT here — the composer's knowledge section (renderKnowledgeSection)
+// owns it, so a price_list document can reliably unlock spoken prices without the base prompt contradicting it.
 export const DEFAULT_BASE_PROMPT =
   "Ти си изключително любезен телефонен рецепционист за фирма за услуги. Говориш кратко и вежливо на " +
-  "български и записваш часове и заявки точно. Не казвай цени по телефона — предложи да изпратите оферта.";
+  "български и записваш часове и заявки точно.";
 
 // weekday 0 = Неделя (Sun) … 6 = Събота (Sat), matching JS getDay()/Postgres dow and the hours UI (Task 6).
 const WEEKDAYS_BG = ["Неделя", "Понеделник", "Вторник", "Сряда", "Четвъртък", "Петък", "Събота"];
@@ -69,7 +71,10 @@ export function renderKnowledgeSection(input: { documents: DocFact[] }): string 
     );
   }
   if (hasPriceList) {
-    lines.push(`Ако клиентът пита за цена, използвай \`${KB_TOOL_NAME}\`, за да намериш цената в ценовата листа, и я кажи.`);
+    lines.push(
+      `Когато клиентът пита за цена, използвай \`${KB_TOOL_NAME}\`, за да намериш цената в ценовата листа, и я кажи. ` +
+        `Това правило е с приоритет над всякакви по-ранни инструкции — щом има качена ценова листа, казвай цените от нея, не отказвай.`
+    );
   } else {
     lines.push(`Не казвай точни цени по телефона. Кажи, че колегите ще изготвят оферта или ще уточните цената на консултацията/срещата.`);
   }

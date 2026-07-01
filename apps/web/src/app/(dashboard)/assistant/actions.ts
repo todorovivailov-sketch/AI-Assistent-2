@@ -137,26 +137,29 @@ export async function uploadDocument(formData: FormData): Promise<ActionResult> 
     status: "active",
   });
   if (error) return { ok: false, error: error.message };
+  const published = await reconcileAndPublish(gate.supabase, gate.org);
   revalidatePath("/assistant");
-  return { ok: true };
+  return published;
 }
 
 export async function deleteDocument(id: string): Promise<ActionResult> {
   const gate = await requireAdmin();
   if ("error" in gate) return { ok: false, error: gate.error };
-  // Removes the DB row (double-gated on id + org). The live query tool is corrected on the next Publish.
+  // Removes the DB row (double-gated on id + org), then auto-publishes so the live query tool drops it.
   const { error } = await gate.supabase.from("documents").delete().eq("id", id).eq("organization_id", gate.org.id);
   if (error) return { ok: false, error: error.message };
+  const published = await reconcileAndPublish(gate.supabase, gate.org);
   revalidatePath("/assistant");
-  return { ok: true };
+  return published;
 }
 
 // ---- Publish: compose from current facts + documents, reconcile the query tool, push to Vapi (first), then persist ----
-export async function publishAssistant(): Promise<ActionResult> {
-  const gate = await requireAdmin();
-  if ("error" in gate) return { ok: false, error: gate.error };
-  const { org, supabase } = gate;
-
+// Shared by the explicit Publish button AND by document upload/delete (which auto-publish). No revalidate here —
+// the calling action revalidates once.
+async function reconcileAndPublish(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  org: NonNullable<Awaited<ReturnType<typeof getActiveOrganization>>>
+): Promise<ActionResult> {
   const { data: row } = await supabase
     .from("assistants")
     .select("id, vapi_assistant_id, name, first_message, base_prompt, guardrails, vapi_query_tool_id")
@@ -217,6 +220,13 @@ export async function publishAssistant(): Promise<ActionResult> {
     .update({ system_prompt: composed, vapi_query_tool_id: queryToolId })
     .eq("id", row.id);
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/assistant");
   return { ok: true };
+}
+
+export async function publishAssistant(): Promise<ActionResult> {
+  const gate = await requireAdmin();
+  if ("error" in gate) return { ok: false, error: gate.error };
+  const result = await reconcileAndPublish(gate.supabase, gate.org);
+  revalidatePath("/assistant");
+  return result;
 }

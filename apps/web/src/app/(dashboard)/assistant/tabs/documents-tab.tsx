@@ -44,7 +44,7 @@ export function DocumentsTab({ documents }: { documents: DocumentRow[] }) {
     <div className="flex flex-col gap-4">
       <p className="text-xs text-[var(--ink-muted)]">
         Качи документи (ЧЗВ, каталог, правила). Ако качиш <strong>ценова листа</strong>, асистентът ще може да казва цени от нея.
-        Промените влизат в сила след &bdquo;Публикувай на живо&rdquo;.
+        Документите се <strong>публикуват автоматично</strong> при качване и триене.
       </p>
       <div className="divide-y divide-[var(--line)]">
         {documents.length === 0 ? <p className="py-3 text-sm text-[var(--ink-soft)]">Няма качени документи.</p> : null}
