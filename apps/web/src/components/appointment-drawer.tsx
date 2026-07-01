@@ -1,20 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Calendar,
-  CalendarDays,
-  MapPin,
-  MessageSquare,
-  Pause,
-  Phone,
-  Play,
-  Trash2,
-  Volume2,
-  X,
-} from "lucide-react";
+import { Calendar, CalendarDays, MapPin, MessageSquare, Phone, Trash2, X } from "lucide-react";
 
 import { StatusBadge } from "@/components/status-badge";
 
@@ -39,68 +28,12 @@ type AppointmentDrawerProps = {
   appointment: Appointment;
 };
 
-type TranscriptLine = {
-  sender: "assistant" | "customer";
-  text: string;
-};
-
-const waveform = [28, 44, 22, 55, 72, 31, 48, 63, 36, 24, 58, 70, 80, 46, 34, 62, 41, 29, 52, 66, 32, 47, 25, 38];
-
-function formatAudioTime(secs: number) {
-  const minutes = Math.floor(secs / 60);
-  const seconds = secs % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-function buildTranscript(appointment: Appointment): TranscriptLine[] {
-  const name = appointment.customerName || "клиента";
-  const service = appointment.serviceType || appointment.title || "консултация";
-  const location = appointment.location || "адресът е уточнен по време на разговора";
-
-  return [
-    { sender: "assistant", text: "Здравейте! С какво мога да съдействам?" },
-    { sender: "customer", text: `Здравейте, казвам се ${name}. Искам да запазя час за ${service}.` },
-    { sender: "assistant", text: "Разбирам. Кой ден и приблизително в колко часа ви е удобно?" },
-    { sender: "customer", text: "Удобно ми е следобед, ако има свободен час." },
-    { sender: "assistant", text: "Проверявам календара. Има свободен час, който мога да потвърдя за вас." },
-    { sender: "customer", text: "Да, устройва ме." },
-    { sender: "assistant", text: "Записах часа. Моля, потвърдете телефон и адрес за посещението." },
-    { sender: "customer", text: location },
-    {
-      sender: "assistant",
-      text: "Благодаря. Часът е потвърден. Има ли още нещо, с което мога да съдействам?",
-    },
-    { sender: "customer", text: "Не, благодаря." },
-    { sender: "assistant", text: "Благодаря за обаждането. Дочуване и приятен ден!" },
-  ];
-}
-
 export default function AppointmentDrawer({ appointment }: AppointmentDrawerProps) {
   const router = useRouter();
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [speed, setSpeed] = useState<1 | 1.5 | 2>(1);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [isSaving, startSave] = useTransition();
-  const duration = 74;
-
-  useEffect(() => {
-    if (!isPlaying) return;
-
-    const interval = window.setInterval(() => {
-      setCurrentTime((prev) => {
-        if (prev >= duration) {
-          setIsPlaying(false);
-          return 0;
-        }
-        return prev + 1;
-      });
-    }, 1000 / speed);
-
-    return () => window.clearInterval(interval);
-  }, [duration, isPlaying, speed]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -113,8 +46,6 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [router]);
 
-  const transcript = useMemo(() => buildTranscript(appointment), [appointment]);
-
   const formattedDate = appointment.startsAt
     ? new Intl.DateTimeFormat("bg-BG", {
         weekday: "short",
@@ -125,14 +56,6 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
         timeZone: "Europe/Sofia",
       }).format(new Date(appointment.startsAt))
     : "Няма точен час";
-
-  const handleSpeedToggle = () => {
-    setSpeed((prev) => {
-      if (prev === 1) return 1.5;
-      if (prev === 1.5) return 2;
-      return 1;
-    });
-  };
 
   const handleMessage = () => {
     alert(`Подготвено съобщение до ${appointment.customerPhone || "клиента"}.`);
@@ -243,80 +166,17 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
             </div>
 
             <section className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <Volume2 size={16} className="text-[var(--accent-strong)]" />
-                  Запис от разговора
-                </div>
-                <button
-                  onClick={handleSpeedToggle}
-                  className="rounded-md border border-[var(--line)] bg-[var(--surface-muted)] px-2 py-1 font-mono text-xs font-semibold"
-                >
-                  {speed}x
-                </button>
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <MessageSquare size={16} className="text-[var(--accent-strong)]" />
+                Разговор и запис
               </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setIsPlaying((value) => !value)}
-                  aria-label={isPlaying ? "Пауза" : "Пусни"}
-                  className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-strong)] text-white"
-                >
-                  {isPlaying ? <Pause size={15} fill="white" /> : <Play size={15} fill="white" className="ml-0.5" />}
-                </button>
-                <div className="min-w-0 flex-1">
-                  <div
-                    className="flex h-9 cursor-pointer items-end gap-[3px]"
-                    onClick={(event) => {
-                      const rect = event.currentTarget.getBoundingClientRect();
-                      setCurrentTime(Math.floor(((event.clientX - rect.left) / rect.width) * duration));
-                    }}
-                  >
-                    {waveform.map((height, index) => {
-                      const active = index / waveform.length <= currentTime / duration;
-                      return (
-                        <div
-                          key={index}
-                          className="flex-1 rounded-sm transition-colors"
-                          style={{
-                            height: `${height}%`,
-                            backgroundColor: active ? "var(--accent-strong)" : "var(--line)",
-                          }}
-                        />
-                      );
-                    })}
-                  </div>
-                  <div className="mt-1 flex justify-between font-mono text-[10px] text-[var(--ink-soft)]">
-                    <span>{formatAudioTime(currentTime)}</span>
-                    <span>{formatAudioTime(duration)}</span>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section>
-              <h3 className="syn-label mb-3">Транскрипция</h3>
-              <div className="max-h-[330px] space-y-3 overflow-y-auto rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] p-4">
-                {transcript.map((line, index) => {
-                  const customer = line.sender === "customer";
-                  return (
-                    <div key={index} className={`flex ${customer ? "justify-end" : "justify-start"}`}>
-                      <div
-                        className={`max-w-[86%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
-                          customer
-                            ? "bg-[var(--foreground)] text-[var(--background)]"
-                            : "border border-[var(--line)] bg-[var(--surface)]"
-                        }`}
-                      >
-                        <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.08em] opacity-70">
-                          {customer ? "Клиент" : "Асистент"}
-                        </div>
-                        {line.text}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <p className="mt-2 text-sm text-[var(--ink-soft)]">
+                Записът и транскрипцията от обаждането се намират в раздел{" "}
+                <Link href="/conversations" className="font-medium text-[var(--accent-strong)] underline">
+                  Разговори
+                </Link>
+                .
+              </p>
             </section>
           </div>
 
