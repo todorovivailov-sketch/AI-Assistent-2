@@ -27,6 +27,8 @@ export async function GET() {
     ),
     authMode: getWebhookAuthMode(),
     vapiConfigured: Boolean(process.env.VAPI_PRIVATE_KEY || process.env.VAPI_API_KEY),
+    resendConfigured: Boolean(process.env.RESEND_API_KEY),
+    ownerEmailConfigured: Boolean(process.env.OWNER_NOTIFICATION_EMAIL),
   });
 }
 
