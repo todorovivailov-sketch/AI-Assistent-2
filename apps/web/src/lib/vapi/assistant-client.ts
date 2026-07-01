@@ -18,7 +18,11 @@ type VapiModel = {
 };
 type VapiAssistant = { name?: string; firstMessage?: string; model?: VapiModel };
 
-export function buildSyncedModel(currentModel: VapiModel, systemPrompt: string) {
+export function buildSyncedModel(
+  currentModel: VapiModel,
+  systemPrompt: string,
+  opts: { addToolIds?: string[]; removeToolIds?: string[] } = {}
+) {
   const messages: VapiMessage[] = Array.isArray(currentModel?.messages)
     ? currentModel.messages.map((m) => ({ ...m }))
     : [];
@@ -27,11 +31,18 @@ export function buildSyncedModel(currentModel: VapiModel, systemPrompt: string) 
   else messages.unshift({ role: "system", content: systemPrompt });
 
   const m = currentModel ?? {};
+  const currentToolIds = Array.isArray(m.toolIds) ? (m.toolIds as string[]) : [];
+  const remove = new Set(opts.removeToolIds ?? []);
+  const merged: string[] = [];
+  for (const id of [...currentToolIds, ...(opts.addToolIds ?? [])]) {
+    if (typeof id === "string" && !remove.has(id) && !merged.includes(id)) merged.push(id);
+  }
+
   return {
     provider: m.provider,
     model: m.model,
     messages,
-    ...(m.toolIds ? { toolIds: m.toolIds } : {}),
+    ...(merged.length ? { toolIds: merged } : {}),
     ...(Array.isArray(m.tools) && m.tools.length ? { tools: m.tools } : {}),
     ...(m.temperature != null ? { temperature: m.temperature } : {}),
     ...(m.maxTokens != null ? { maxTokens: m.maxTokens } : {}),
@@ -68,10 +79,19 @@ export async function getVapiAssistant(id: string): Promise<VapiAssistant> {
 
 export async function syncAssistantToVapi(
   id: string,
-  input: { name: string; firstMessage: string; systemPrompt: string }
+  input: {
+    name: string;
+    firstMessage: string;
+    systemPrompt: string;
+    addToolIds?: string[];
+    removeToolIds?: string[];
+  }
 ): Promise<void> {
   const current = await getVapiAssistant(id);
-  const model = buildSyncedModel(current?.model ?? {}, input.systemPrompt);
+  const model = buildSyncedModel(current?.model ?? {}, input.systemPrompt, {
+    addToolIds: input.addToolIds,
+    removeToolIds: input.removeToolIds,
+  });
   await vapiFetch("PATCH", `/assistant/${encodeURIComponent(id)}`, {
     name: input.name,
     firstMessage: input.firstMessage,

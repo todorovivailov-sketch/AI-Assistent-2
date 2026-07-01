@@ -66,4 +66,16 @@ assert.equal(okb.values.firstMessage, "Здравей", "greeting trimmed");
 assert.equal(okb.values.guardrails, "Правило", "guardrails trimmed");
 assert.equal(parseAgentBehaviorForm(form({ name: "n", base_prompt: "p" })).values.guardrails, "", "guardrails may be empty");
 
+// --- toolIds add/remove (Phase 4c query-tool management) ---
+const withAdd = buildSyncedModel({ provider: "p", model: "m", toolIds: ["a", "b"], messages: [] }, "S", { addToolIds: ["q"] });
+assert.deepEqual(withAdd.toolIds, ["a", "b", "q"], "addToolIds appends the query tool id");
+const dedup = buildSyncedModel({ provider: "p", model: "m", toolIds: ["a", "q"], messages: [] }, "S", { addToolIds: ["q"] });
+assert.deepEqual(dedup.toolIds, ["a", "q"], "addToolIds dedupes");
+const removed = buildSyncedModel({ provider: "p", model: "m", toolIds: ["a", "q"], messages: [] }, "S", { removeToolIds: ["q"] });
+assert.deepEqual(removed.toolIds, ["a"], "removeToolIds drops the query tool id, keeps booking tools");
+const removeLast = buildSyncedModel({ provider: "p", model: "m", toolIds: ["q"], messages: [] }, "S", { removeToolIds: ["q"] });
+assert.ok(!("toolIds" in removeLast), "toolIds omitted when the last id is removed");
+const removeWins = buildSyncedModel({ provider: "p", model: "m", toolIds: ["a"], messages: [] }, "S", { addToolIds: ["q"], removeToolIds: ["q"] });
+assert.deepEqual(removeWins.toolIds, ["a"], "removeToolIds takes precedence over addToolIds");
+
 console.log("assistant-sync checks passed");
