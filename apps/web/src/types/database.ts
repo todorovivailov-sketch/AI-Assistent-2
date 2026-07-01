@@ -60,6 +60,7 @@ export type Database = {
           system_prompt: string | null;
           base_prompt: string | null;
           guardrails: string | null;
+          vapi_query_tool_id: string | null;
           status: string;
           created_at: string;
           updated_at: string;
@@ -77,6 +78,7 @@ export type Database = {
           system_prompt?: string | null;
           base_prompt?: string | null;
           guardrails?: string | null;
+          vapi_query_tool_id?: string | null;
           status?: string;
           created_at?: string;
           updated_at?: string;
@@ -206,6 +208,30 @@ export type Database = {
           status?: string;
           created_at?: string;
           updated_at?: string;
+        }
+      >;
+      documents: PublicTable<
+        {
+          id: string;
+          organization_id: string;
+          name: string;
+          kind: string;
+          vapi_file_id: string | null;
+          bytes: number | null;
+          mimetype: string | null;
+          status: string;
+          created_at: string;
+        },
+        {
+          id?: string;
+          organization_id: string;
+          name: string;
+          kind?: string;
+          vapi_file_id?: string | null;
+          bytes?: number | null;
+          mimetype?: string | null;
+          status?: string;
+          created_at?: string;
         }
       >;
       calls: PublicTable<
