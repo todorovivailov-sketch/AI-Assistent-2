@@ -148,7 +148,7 @@ Add alongside the existing sync cron (result: 2 crons — within Hobby's limit):
 ## Prerequisites (user, outside code)
 
 1. **Rotate** the Zadarma API key/secret (they were shared via screenshot) → set the new values in Vercel env + `.env.local`.
-2. **Register a Sender ID** in Zadarma (alphanumeric sender or the virtual number) → `ZADARMA_SMS_SENDER`. May require Zadarma approval; without it, SMS won't send.
+2. **Set the SMS sender** → `ZADARMA_SMS_SENDER`. **Free path (default): use your Zadarma phone number** (e.g. `35924372749`) — no registration, no fee; works as long as that number supports outgoing SMS (verify in the Zadarma panel or with one test send). Optional branded path (later): an alphanumeric Sender ID with the company name costs €20 + a company certificate + up to ~15 business days approval — **not needed to launch**.
 3. Apply migration `007` via the Supabase SQL editor.
 
 ## Security
