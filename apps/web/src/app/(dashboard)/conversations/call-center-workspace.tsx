@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   CalendarPlus,
   MessageSquare,
-  Pause,
   Phone,
   PhoneIncoming,
   PhoneMissed,
@@ -14,8 +13,6 @@ import {
   Search,
   Send,
   Sparkles,
-  Volume2,
-  VolumeX,
 } from "lucide-react";
 
 import { StatusBadge } from "@/components/status-badge";
@@ -89,18 +86,8 @@ function isAssistantSpeaker(speaker: string) {
   );
 }
 
-function waveformFor(id: string) {
-  let seed = 0;
-  for (let index = 0; index < id.length; index += 1) seed += id.charCodeAt(index);
-
-  return Array.from({ length: 52 }, () => {
-    const x = Math.sin(seed++) * 10000;
-    return Math.floor((x - Math.floor(x)) * 62) + 18;
-  });
-}
-
-function parseTranscript(text: string | null, fallbackLines: TranscriptLine[]): TranscriptLine[] {
-  if (!text) return fallbackLines;
+function parseTranscript(text: string | null): TranscriptLine[] {
+  if (!text) return [];
 
   const parsed: TranscriptLine[] = [];
   const lines = text
@@ -123,39 +110,7 @@ function parseTranscript(text: string | null, fallbackLines: TranscriptLine[]): 
     }
   }
 
-  return parsed.length > 0 ? parsed : fallbackLines;
-}
-
-function getFallbackTranscript(call: DashboardConversation): TranscriptLine[] {
-  const service = call.serviceType || "консултация";
-
-  if (["appointment", "booked", "confirmed"].includes(call.outcome)) {
-    return [
-      { speaker: "Асистент", text: "Здравейте! С какво мога да съдействам?" },
-      { speaker: "Клиент", text: `Искам да запазя час за ${service}.` },
-      { speaker: "Асистент", text: "Разбирам. Кой ден и в колко часа Ви е удобно?" },
-      { speaker: "Клиент", text: "Удобно ми е следобед." },
-      { speaker: "Асистент", text: "Проверявам календара. Има свободен час, който мога да потвърдя." },
-      { speaker: "Клиент", text: "Да, устройва ме." },
-      { speaker: "Асистент", text: "Записах часа. Има ли още нещо, с което мога да съдействам?" },
-      { speaker: "Клиент", text: "Не, благодаря." },
-      { speaker: "Асистент", text: "Дочуване и приятен ден!" },
-    ];
-  }
-
-  if (["urgent", "emergency", "high"].includes(call.outcome)) {
-    return [
-      { speaker: "Асистент", text: "Здравейте. Опишете накратко ситуацията, за да преценим спешността." },
-      { speaker: "Клиент", text: `Имам спешна нужда от съдействие за ${service}.` },
-      { speaker: "Асистент", text: "Разбирам. Ще маркирам разговора като приоритетен и ще го предам към екипа." },
-    ];
-  }
-
-  return [
-    { speaker: "Асистент", text: "Здравейте! Как мога да помогна?" },
-    { speaker: "Клиент", text: `Искам информация за ${service}.` },
-    { speaker: "Асистент", text: "Разбирам. Ще запиша заявката и при нужда ще Ви свържем със специалист." },
-  ];
+  return parsed;
 }
 
 function isUrgentCall(call: DashboardConversation) {
@@ -171,69 +126,10 @@ function isMissedCall(call: DashboardConversation) {
 }
 
 function CallDetailsPanel({ call }: { call: DashboardConversation }) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [speed, setSpeed] = useState(1);
-  const [duration, setDuration] = useState(call.durationSeconds || 120);
-  const [isMuted, setIsMuted] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [smsText, setSmsText] = useState("");
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    return () => audio?.pause();
-  }, []);
-
-  useEffect(() => {
-    if (!isPlaying || call.recordingUrl) return;
-
-    const interval = window.setInterval(() => {
-      setCurrentTime((prev) => {
-        if (prev >= duration) {
-          setIsPlaying(false);
-          return duration;
-        }
-        return Math.min(duration, prev + 0.1 * speed);
-      });
-    }, 100);
-
-    return () => window.clearInterval(interval);
-  }, [call.recordingUrl, duration, isPlaying, speed]);
-
-  const waveform = useMemo(() => waveformFor(call.id), [call.id]);
-  const transcriptLines = useMemo(() => parseTranscript(call.transcriptText, getFallbackTranscript(call)), [call]);
-
-  const togglePlay = () => {
-    const shouldPlay = !isPlaying;
-    setIsPlaying(shouldPlay);
-
-    if (!call.recordingUrl || !audioRef.current) return;
-    if (shouldPlay) {
-      audioRef.current.play().catch(() => setIsPlaying(false));
-    } else {
-      audioRef.current.pause();
-    }
-  };
-
-  const cycleSpeed = () => {
-    const nextSpeed = speed === 1 ? 1.5 : speed === 1.5 ? 2 : 1;
-    setSpeed(nextSpeed);
-    if (audioRef.current) audioRef.current.playbackRate = nextSpeed;
-  };
-
-  const toggleMute = () => {
-    const nextMute = !isMuted;
-    setIsMuted(nextMute);
-    if (audioRef.current) audioRef.current.muted = nextMute;
-  };
-
-  const handleTimelineClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const newTime = ((event.clientX - rect.left) / rect.width) * duration;
-    setCurrentTime(newTime);
-    if (audioRef.current && call.recordingUrl) audioRef.current.currentTime = newTime;
-  };
+  const transcriptLines = useMemo(() => parseTranscript(call.transcriptText), [call]);
 
   const handleTemplateChange = (id: string) => {
     const template = smsTemplates.find((item) => item.id === id);
@@ -254,19 +150,6 @@ function CallDetailsPanel({ call }: { call: DashboardConversation }) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      {call.recordingUrl ? (
-        <audio
-          ref={audioRef}
-          src={call.recordingUrl}
-          onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime ?? 0)}
-          onLoadedMetadata={() => setDuration(audioRef.current?.duration || call.durationSeconds || 120)}
-          onEnded={() => {
-            setIsPlaying(false);
-            setCurrentTime(0);
-          }}
-        />
-      ) : null}
-
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--line)] bg-[var(--surface)] px-5 py-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -295,54 +178,27 @@ function CallDetailsPanel({ call }: { call: DashboardConversation }) {
 
       <div className="flex-1 space-y-5 overflow-y-auto p-5">
         <section className="rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={togglePlay}
-                aria-label={isPlaying ? "Пауза" : "Възпроизвеждане"}
-                className="inline-flex size-10 items-center justify-center rounded-full bg-[var(--accent-strong)] text-white"
+          <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <Play size={16} className="text-[var(--accent-strong)]" />
+            Запис на разговора
+          </h4>
+          {call.recordingUrl ? (
+            <div className="space-y-2">
+              <audio controls preload="none" src={call.recordingUrl} className="w-full">
+                Браузърът ви не поддържа възпроизвеждане на аудио.
+              </audio>
+              <a
+                href={call.recordingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block font-mono text-xs text-[var(--ink-soft)] underline transition hover:text-[var(--foreground)]"
               >
-                {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
-              </button>
-              <button
-                onClick={cycleSpeed}
-                className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1.5 font-mono text-xs font-semibold"
-              >
-                {speed}x
-              </button>
+                Отвори записа в нов таб
+              </a>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleMute}
-                aria-label={isMuted ? "Включи звук" : "Спри звук"}
-                className="rounded-md p-2 text-[var(--ink-soft)] transition hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
-              >
-                {isMuted ? <VolumeX size={17} /> : <Volume2 size={17} />}
-              </button>
-              <span className="font-mono text-xs text-[var(--ink-soft)]">
-                {formatDuration(currentTime)} / {formatDuration(duration)}
-              </span>
-            </div>
-          </div>
-
-          <div
-            onClick={handleTimelineClick}
-            className="flex h-12 cursor-pointer items-center gap-0.5 rounded-md border border-[var(--line)] bg-[var(--surface)] p-2"
-          >
-            {waveform.map((height, index) => {
-              const active = index / waveform.length <= currentTime / duration;
-              return (
-                <div
-                  key={index}
-                  className="flex-1 rounded-full"
-                  style={{
-                    height: `${height}%`,
-                    backgroundColor: active ? "var(--accent-strong)" : "var(--line)",
-                  }}
-                />
-              );
-            })}
-          </div>
+          ) : (
+            <p className="text-sm text-[var(--ink-soft)]">Няма запис за това обаждане.</p>
+          )}
         </section>
 
         <section>
@@ -351,7 +207,7 @@ function CallDetailsPanel({ call }: { call: DashboardConversation }) {
             AI резюме
           </h4>
           <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 text-sm leading-relaxed">
-            {call.summary || call.summaryPreview}
+            {call.summary || call.summaryPreview || "Няма резюме за това обаждане."}
           </div>
         </section>
 
@@ -361,26 +217,30 @@ function CallDetailsPanel({ call }: { call: DashboardConversation }) {
             Транскрипция
           </h4>
           <div className="max-h-[360px] space-y-3 overflow-y-auto rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] p-4">
-            {transcriptLines.map((line, index) => {
-              const assistant = isAssistantSpeaker(line.speaker);
-              return (
-                <div key={index} className={`flex ${assistant ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[86%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
-                      assistant
-                        ? "bg-[var(--foreground)] text-[var(--background)]"
-                        : "border border-[var(--line)] bg-[var(--surface)]"
-                    }`}
-                  >
-                    <div className="mb-1 flex gap-2 font-mono text-[10px] uppercase tracking-[0.08em] opacity-70">
-                      <span>{line.speaker}</span>
-                      {line.time ? <span>{line.time}</span> : null}
+            {transcriptLines.length > 0 ? (
+              transcriptLines.map((line, index) => {
+                const assistant = isAssistantSpeaker(line.speaker);
+                return (
+                  <div key={index} className={`flex ${assistant ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[86%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
+                        assistant
+                          ? "bg-[var(--foreground)] text-[var(--background)]"
+                          : "border border-[var(--line)] bg-[var(--surface)]"
+                      }`}
+                    >
+                      <div className="mb-1 flex gap-2 font-mono text-[10px] uppercase tracking-[0.08em] opacity-70">
+                        <span>{line.speaker}</span>
+                        {line.time ? <span>{line.time}</span> : null}
+                      </div>
+                      <p className="whitespace-pre-line">{line.text}</p>
                     </div>
-                    <p className="whitespace-pre-line">{line.text}</p>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <p className="text-sm text-[var(--ink-soft)]">Няма транскрипция за това обаждане.</p>
+            )}
           </div>
         </section>
 
