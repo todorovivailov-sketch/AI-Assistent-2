@@ -2,6 +2,7 @@ import { getSupabaseServiceClient } from "@/lib/supabase/service";
 import { createGoogleCalendarEvent, listGoogleCalendarEvents } from "@/lib/google/calendar";
 import { getIntervalAvailability, hasBufferedConflict, type AvailabilityWindow } from "@/lib/vapi/availability-logic";
 import type { OrganizationResolution, VapiMessage } from "@/lib/vapi/payload";
+import { getExternalEventId } from "@/lib/vapi/payload";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -62,24 +63,30 @@ export async function handleVapiToolCalls(
     };
   }
 
+  const vapiCallId = getExternalEventId(message);
+
   const results = await Promise.all(
     toolCalls.map(async (toolCall) => ({
       toolCallId: toolCall.id,
-      result: await executeCalendarTool(toolCall, resolution),
+      result: await executeCalendarTool(toolCall, resolution, vapiCallId),
     }))
   );
 
   return { results };
 }
 
-async function executeCalendarTool(toolCall: ToolCall, resolution: OrganizationResolution | null) {
+async function executeCalendarTool(
+  toolCall: ToolCall,
+  resolution: OrganizationResolution | null,
+  vapiCallId: string | null
+) {
   try {
     if (toolCall.name === "check_availability") {
       return await checkAvailability(toolCall.parameters, resolution);
     }
 
     if (toolCall.name === "book_appointment") {
-      return await bookAppointment(toolCall.parameters, resolution);
+      return await bookAppointment(toolCall.parameters, resolution, vapiCallId);
     }
 
     return `Непознат календарен инструмент: ${toolCall.name}.`;
@@ -134,7 +141,11 @@ async function checkAvailability(parameters: JsonRecord, resolution: Organizatio
   return `Часът ${formatSofiaDateTime(requestedStart)} не е свободен. Свободните часове за ${formatSofiaDate(date)} са: ${formattedSlots}. Кой от тях бихте искали да запишете?`;
 }
 
-async function bookAppointment(parameters: JsonRecord, resolution: OrganizationResolution | null) {
+async function bookAppointment(
+  parameters: JsonRecord,
+  resolution: OrganizationResolution | null,
+  vapiCallId: string | null
+) {
   const organizationId = await getOrganizationId(resolution);
   const settings = await getCalendarSettings(organizationId);
   const durationMinutes =
@@ -178,6 +189,7 @@ async function bookAppointment(parameters: JsonRecord, resolution: OrganizationR
       customer_phone: customerPhone ?? null,
       service_type: serviceType,
       notes: notes ?? null,
+      vapi_call_id: vapiCallId ?? null,
     })
     .select("id")
     .single();

@@ -339,6 +339,7 @@ export type Database = {
           service_type: string | null;
           notes: string | null;
           google_calendar_event_id: string | null;
+          vapi_call_id: string | null;
           created_at: string;
           updated_at: string;
         },
@@ -358,6 +359,7 @@ export type Database = {
           service_type?: string | null;
           notes?: string | null;
           google_calendar_event_id?: string | null;
+          vapi_call_id?: string | null;
           created_at?: string;
           updated_at?: string;
         }

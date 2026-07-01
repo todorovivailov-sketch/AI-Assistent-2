@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Calendar, CalendarDays, MapPin, MessageSquare, Phone, Trash2, X } from "lucide-react";
+import { Calendar, CalendarDays, MapPin, MessageSquare, Phone, Trash2, Volume2, X } from "lucide-react";
 
 import { StatusBadge } from "@/components/status-badge";
 
@@ -22,11 +22,34 @@ export interface Appointment {
   location: string | null;
   notes: string | null;
   hasGoogleEvent: boolean;
+  transcriptText: string | null;
+  recordingUrl: string | null;
 }
 
 type AppointmentDrawerProps = {
   appointment: Appointment;
 };
+
+type TranscriptLine = { speaker: string; text: string };
+
+function parseTranscript(text: string | null): TranscriptLine[] {
+  if (!text) return [];
+  const lines: TranscriptLine[] = [];
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (!line) continue;
+    const match = line.match(/^([^:]+):\s*(.*)$/);
+    if (match) lines.push({ speaker: match[1].trim(), text: match[2].trim() });
+    else if (lines.length > 0) lines[lines.length - 1].text += `\n${line}`;
+    else lines.push({ speaker: "Инфо", text: line });
+  }
+  return lines;
+}
+
+function isAssistantSpeaker(speaker: string): boolean {
+  const value = speaker.toLowerCase();
+  return value.includes("ai") || value.includes("assistant") || value.includes("асистент") || value.includes("agent");
+}
 
 export default function AppointmentDrawer({ appointment }: AppointmentDrawerProps) {
   const router = useRouter();
@@ -45,6 +68,8 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [router]);
+
+  const transcriptLines = parseTranscript(appointment.transcriptText);
 
   const formattedDate = appointment.startsAt
     ? new Intl.DateTimeFormat("bg-BG", {
@@ -166,17 +191,56 @@ export default function AppointmentDrawer({ appointment }: AppointmentDrawerProp
             </div>
 
             <section className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <MessageSquare size={16} className="text-[var(--accent-strong)]" />
-                Разговор и запис
+              <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                <Volume2 size={16} className="text-[var(--accent-strong)]" />
+                Запис от разговора
               </div>
-              <p className="mt-2 text-sm text-[var(--ink-soft)]">
-                Записът и транскрипцията от обаждането се намират в раздел{" "}
-                <Link href="/conversations" className="font-medium text-[var(--accent-strong)] underline">
-                  Разговори
-                </Link>
-                .
-              </p>
+              {appointment.recordingUrl ? (
+                <div className="space-y-2">
+                  <audio controls preload="none" src={appointment.recordingUrl} className="w-full">
+                    Браузърът ви не поддържа възпроизвеждане на аудио.
+                  </audio>
+                  <a
+                    href={appointment.recordingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block font-mono text-xs text-[var(--ink-soft)] underline transition hover:text-[var(--foreground)]"
+                  >
+                    Отвори записа в нов таб
+                  </a>
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--ink-soft)]">Няма запис за това обаждане.</p>
+              )}
+            </section>
+
+            <section>
+              <h3 className="syn-label mb-3">Транскрипция</h3>
+              <div className="max-h-[330px] space-y-3 overflow-y-auto rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+                {transcriptLines.length > 0 ? (
+                  transcriptLines.map((line, index) => {
+                    const assistant = isAssistantSpeaker(line.speaker);
+                    return (
+                      <div key={index} className={`flex ${assistant ? "justify-start" : "justify-end"}`}>
+                        <div
+                          className={`max-w-[86%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
+                            assistant
+                              ? "border border-[var(--line)] bg-[var(--surface)]"
+                              : "bg-[var(--foreground)] text-[var(--background)]"
+                          }`}
+                        >
+                          <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.08em] opacity-70">
+                            {line.speaker}
+                          </div>
+                          <p className="whitespace-pre-line">{line.text}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-[var(--ink-soft)]">Няма транскрипция за това обаждане.</p>
+                )}
+              </div>
             </section>
           </div>
 

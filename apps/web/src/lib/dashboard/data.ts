@@ -33,6 +33,7 @@ type AppointmentsRow = Pick<
   Database["public"]["Tables"]["appointments"]["Row"],
   | "id"
   | "call_id"
+  | "vapi_call_id"
   | "title"
   | "starts_at"
   | "ends_at"
@@ -95,6 +96,7 @@ export type DashboardAppointmentRecord = DashboardAppointmentInput & {
   id: string;
   callId: string | null;
   call_id: string | null;
+  vapiCallId: string | null;
   title: string;
   startsAt: string | null;
   endsAt: string | null;
@@ -121,6 +123,8 @@ export type DashboardAppointmentListItem = {
   location: string | null;
   notes: string | null;
   hasGoogleEvent: boolean;
+  transcriptText: string | null;
+  recordingUrl: string | null;
 };
 
 export type DashboardLeadListItem = {
@@ -211,7 +215,7 @@ const APPOINTMENT_LOOKAHEAD_DAYS = 30;
 const DASHBOARD_CALL_SELECT =
   "id, caller_number, disposition, status, started_at, created_at, duration_seconds, summary, structured_data, recording_url, transcript";
 const DASHBOARD_APPOINTMENT_SELECT =
-  "id, call_id, title, starts_at, ends_at, status, customer_name, customer_phone, service_type, location, notes, google_calendar_event_id, created_at, updated_at";
+  "id, call_id, vapi_call_id, title, starts_at, ends_at, status, customer_name, customer_phone, service_type, location, notes, google_calendar_event_id, created_at, updated_at";
 const DASHBOARD_LEAD_SELECT =
   "id, name, phone, email, city, service_type, urgency, status, source, notes, ai_summary, preferred_time_text, created_at";
 const MISSING_NAME_LABEL = "Без име";
@@ -329,7 +333,25 @@ export async function getCalendarAppointmentById(
   if (!organization) return null;
 
   const appointment = await getDashboardAppointmentById(organization.id, id);
-  return appointment ? toAppointmentListItem(appointment) : null;
+  if (!appointment) return null;
+
+  const item = toAppointmentListItem(appointment);
+  if (!appointment.vapiCallId) return item;
+
+  // Pull the real transcript + recording from the call that booked this appointment.
+  const supabase = await createClient();
+  const { data: call } = await supabase
+    .from("calls")
+    .select("transcript, recording_url")
+    .eq("organization_id", organization.id)
+    .eq("vapi_call_id", appointment.vapiCallId)
+    .maybeSingle();
+
+  return {
+    ...item,
+    transcriptText: call?.transcript ?? null,
+    recordingUrl: call?.recording_url ?? null,
+  };
 }
 
 export async function getLeadsData(limit = 200): Promise<DashboardLeadListItem[]> {
@@ -671,6 +693,7 @@ function toDashboardAppointment(appointment: AppointmentsRow): DashboardAppointm
     id: appointment.id,
     callId: appointment.call_id,
     call_id: appointment.call_id,
+    vapiCallId: appointment.vapi_call_id,
     title: appointment.title,
     startsAt: appointment.starts_at,
     starts_at: appointment.starts_at,
@@ -737,6 +760,8 @@ function toAppointmentListItem(appointment: DashboardAppointmentRecord): Dashboa
     location: appointment.location,
     notes: appointment.notes,
     hasGoogleEvent: appointment.hasGoogleEvent,
+    transcriptText: null,
+    recordingUrl: null,
   };
 }
 
