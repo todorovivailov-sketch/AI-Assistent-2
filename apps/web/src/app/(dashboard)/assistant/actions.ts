@@ -35,10 +35,10 @@ async function requireAdmin(): Promise<AdminGate> {
 
 // ---- Behavior (DB-only draft; goes live on Publish) ----
 export async function updateAgentBehavior(formData: FormData): Promise<ActionResult> {
-  const parsed = parseAgentBehaviorForm(formData);
-  if (parsed.error || !parsed.values) return { ok: false, error: parsed.error ?? "invalid" };
   const gate = await requireAdmin();
   if ("error" in gate) return { ok: false, error: gate.error };
+  const parsed = parseAgentBehaviorForm(formData);
+  if (parsed.error || !parsed.values) return { ok: false, error: parsed.error ?? "invalid" };
 
   const { error } = await gate.supabase
     .from("assistants")
