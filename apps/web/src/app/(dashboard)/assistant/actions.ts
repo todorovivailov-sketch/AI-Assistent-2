@@ -9,7 +9,14 @@ import { parseBusinessHoursForm } from "@/lib/agent/business-hours-form";
 import { parseServiceAreaForm } from "@/lib/agent/service-area-form";
 import { parseDocumentForm } from "@/lib/agent/document-form";
 import { uploadVapiFile, createQueryTool, updateQueryToolFiles } from "@/lib/vapi/knowledge-base-client";
-import { composeSystemPrompt, renderBusinessContext, renderKnowledgeSection, DEFAULT_BASE_PROMPT } from "@/lib/agent/prompt-composer";
+import {
+  composeSystemPrompt,
+  renderBusinessContext,
+  renderKnowledgeSection,
+  renderOperatingGuidelines,
+  withRecordingConsent,
+  DEFAULT_BASE_PROMPT,
+} from "@/lib/agent/prompt-composer";
 import { createClient } from "@/lib/supabase/server";
 import { syncAssistantToVapi } from "@/lib/vapi/assistant-client";
 
@@ -186,7 +193,8 @@ async function reconcileAndPublish(
   const knowledge = renderKnowledgeSection({
     documents: (documents ?? []).map((d) => ({ kind: d.kind, status: d.status })),
   });
-  const composed = composeSystemPrompt({ base, businessContext, knowledge, guardrails });
+  const guidelines = renderOperatingGuidelines();
+  const composed = composeSystemPrompt({ base, guidelines, businessContext, knowledge, guardrails });
 
   const desiredFileIds = (documents ?? []).map((d) => d.vapi_file_id).filter((x): x is string => Boolean(x));
   let queryToolId = row.vapi_query_tool_id ?? null;
@@ -197,14 +205,14 @@ async function reconcileAndPublish(
       else queryToolId = (await createQueryTool(desiredFileIds, org.name)).id;
       await syncAssistantToVapi(row.vapi_assistant_id, {
         name: row.name,
-        firstMessage: row.first_message ?? "",
+        firstMessage: withRecordingConsent(row.first_message ?? ""),
         systemPrompt: composed,
         addToolIds: [queryToolId],
       });
     } else {
       await syncAssistantToVapi(row.vapi_assistant_id, {
         name: row.name,
-        firstMessage: row.first_message ?? "",
+        firstMessage: withRecordingConsent(row.first_message ?? ""),
         systemPrompt: composed,
         ...(queryToolId ? { removeToolIds: [queryToolId] } : {}),
       });

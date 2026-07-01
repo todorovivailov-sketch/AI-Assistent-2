@@ -1,6 +1,6 @@
 // Pure prompt composition (no DB, no Next imports -> unit-testable via transpile/data-URL).
-// system_prompt = base_prompt + generated "Бизнес контекст" (from facts) + "Твърди правила" (guardrails).
-// Prices are intentionally NEVER rendered (Phase 4c/Knowledge Base unlocks spoken prices).
+// system_prompt = base_prompt + operating guidelines + "Бизнес контекст" (facts) + knowledge/prices +
+// "Твърди правила" (guardrails). Price policy lives in renderKnowledgeSection (Phase 4c), NOT in the base.
 
 type ServiceFact = { name: string; description?: string | null; status: string };
 type HoursFact = { weekday: number; opens_at: string | null; closes_at: string | null; is_closed: boolean };
@@ -82,14 +82,44 @@ export function renderKnowledgeSection(input: { documents: DocFact[] }): string 
   return `${header}\n${lines.join("\n")}`;
 }
 
+const RECORDING_CONSENT_LINE = "Разговорът може да бъде записан с цел качество.";
+
+// Systemic operating manual — reliability rules that apply to EVERY assistant regardless of the client's
+// base_prompt: dynamic date (Vapi Liquid variable, rendered per call), spoken-form Bulgarian, tool-deferral.
+// Prices are intentionally NOT covered here — renderKnowledgeSection owns price policy (Phase 4c).
+export function renderOperatingGuidelines(): string {
+  const lines = [
+    "## Как да работиш (с висок приоритет)",
+    '- Сегашна дата и час (Europe/Sofia): {{ "now" | date: "%Y-%m-%d %H:%M", "Europe/Sofia" }}. Смятай „утре", „в петък", „вдругиден" спрямо нея.',
+    "- Към инструментите винаги подавай дата във формат ГГГГ-ММ-ДД и час във формат ЧЧ:ММ (24 часа).",
+    "- Не измисляй свободни часове — научаваш ги само от резултата на инструмента за наличност. Не потвърждавай записан час, преди инструментът за записване да върне успех.",
+    "- Говори кратко (едно-две изречения), задавай по един въпрос наведнъж и само на български.",
+    '- Изговаряй числа, дати и часове с думи: „09:00" → „в девет часа", „15:30" → „три и половина следобед"; дата → „петък, двайсети юни". Не произнасяй кодове, идентификатори или URL адреси.',
+  ];
+  return lines.join("\n");
+}
+
+// EU recording disclosure appended to the PUBLISHED greeting when the client's greeting doesn't already
+// disclose call recording — compliance holds without the client having to remember it. Idempotent; the
+// stored greeting is left untouched (this wraps only the value sent to Vapi at publish time).
+export function withRecordingConsent(firstMessage: string): string {
+  const msg = (firstMessage ?? "").trim();
+  if (!msg) return RECORDING_CONSENT_LINE;
+  const mentionsRecording = /разговор/i.test(msg) && /запис/i.test(msg);
+  return mentionsRecording ? msg : `${msg} ${RECORDING_CONSENT_LINE}`;
+}
+
 export function composeSystemPrompt(input: {
   base: string;
+  guidelines?: string | null;
   businessContext: string;
   knowledge?: string | null;
   guardrails?: string | null;
 }): string {
   const base = (input.base ?? "").trim() || DEFAULT_BASE_PROMPT;
   const sections = [base];
+  const guidelines = (input.guidelines ?? "").trim();
+  if (guidelines) sections.push(guidelines);
   if (input.businessContext && input.businessContext.trim()) sections.push(input.businessContext.trim());
   const knowledge = (input.knowledge ?? "").trim();
   if (knowledge) sections.push(knowledge);

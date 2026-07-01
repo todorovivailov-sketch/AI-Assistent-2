@@ -4,6 +4,7 @@ import {
   composeSystemPrompt,
   renderBusinessContext,
   renderKnowledgeSection,
+  renderOperatingGuidelines,
   DEFAULT_BASE_PROMPT,
 } from "@/lib/agent/prompt-composer";
 
@@ -75,6 +76,12 @@ export async function getAgentComposerData(): Promise<AgentComposerData | null> 
     hours: hours ?? [],
     areas: areas ?? [],
     documents: documents ?? [],
-    composedPreview: composeSystemPrompt({ base: basePrompt, businessContext, knowledge, guardrails }),
+    composedPreview: composeSystemPrompt({
+      base: basePrompt,
+      guidelines: renderOperatingGuidelines(),
+      businessContext,
+      knowledge,
+      guardrails,
+    }),
   };
 }
