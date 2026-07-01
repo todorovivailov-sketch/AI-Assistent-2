@@ -17,7 +17,7 @@ function loadModule(relParts) {
   return import(url);
 }
 
-const { renderBusinessContext, composeSystemPrompt } = await loadModule(["src", "lib", "agent", "prompt-composer.ts"]);
+const { renderBusinessContext, composeSystemPrompt, renderKnowledgeSection } = await loadModule(["src", "lib", "agent", "prompt-composer.ts"]);
 
 // renderBusinessContext: active-only, NO prices, empty sections omitted
 const ctx = renderBusinessContext({
@@ -58,5 +58,30 @@ assert.ok(composed.includes("Не псувай."), "guardrails body included");
 
 assert.equal(composeSystemPrompt({ base: "ONLY", businessContext: "", guardrails: "" }), "ONLY", "base-only when nothing else");
 assert.ok(!composeSystemPrompt({ base: "B", businessContext: "", guardrails: "G" }).includes("Бизнес контекст"), "no empty context section");
+
+// --- renderKnowledgeSection: prices OFF by default; a price_list document unlocks quoting ---
+const k0 = renderKnowledgeSection({ documents: [] });
+assert.ok(k0.includes("## Цени"), "no docs -> price header");
+assert.ok(!k0.includes("business_docs"), "no tool instruction without docs");
+assert.ok(/оферта|консултаци/.test(k0), "no docs -> deflect prices");
+
+const k1 = renderKnowledgeSection({ documents: [{ kind: "general", status: "active" }] });
+assert.ok(k1.includes("## Документи и цени"), "docs -> docs header");
+assert.ok(k1.includes("business_docs"), "docs -> tool instruction present");
+assert.ok(/оферта|консултаци/.test(k1), "general doc only -> still deflect prices");
+
+const k2 = renderKnowledgeSection({ documents: [{ kind: "price_list", status: "active" }, { kind: "general", status: "active" }] });
+assert.ok(k2.includes("business_docs"), "price list -> tool instruction");
+assert.ok(/цена/i.test(k2) && !/Не казвай точни цени/.test(k2), "price list -> quoting allowed, no deflection");
+
+const k3 = renderKnowledgeSection({ documents: [{ kind: "price_list", status: "archived" }] });
+assert.ok(/Не казвай точни цени/.test(k3), "archived price list -> still deflect");
+assert.ok(!k3.includes("business_docs"), "archived doc -> no tool instruction");
+
+// composeSystemPrompt places knowledge between context and guardrails
+const composedK = composeSystemPrompt({ base: "BASE", businessContext: "## Бизнес контекст\nУслуги: A", knowledge: "## Цени\nX", guardrails: "G" });
+assert.ok(composedK.indexOf("## Цени") > composedK.indexOf("## Бизнес контекст"), "knowledge after context");
+assert.ok(composedK.indexOf("Твърди правила") > composedK.indexOf("## Цени"), "guardrails after knowledge");
+assert.equal(composeSystemPrompt({ base: "ONLY", businessContext: "", guardrails: "" }), "ONLY", "no knowledge arg -> base only (4b behaviour intact)");
 
 console.log("prompt-composer checks passed");
