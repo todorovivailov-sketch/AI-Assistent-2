@@ -8,6 +8,7 @@ import { BehaviorTab } from "./tabs/behavior-tab";
 import { ServicesTab } from "./tabs/services-tab";
 import { HoursTab } from "./tabs/hours-tab";
 import { AreasTab } from "./tabs/areas-tab";
+import { DocumentsTab } from "./tabs/documents-tab";
 import { PublishTab } from "./tabs/publish-tab";
 
 export const inputClass =
@@ -27,6 +28,11 @@ export function errorLabel(code: string): string {
     case "no_assistant": return "Няма свързан Vapi асистент.";
     case "vapi_sync_failed": return "Неуспешен синк към Vapi — нищо не е публикувано. Опитай пак.";
     case "no_org": return "Няма активна организация.";
+    case "document_file_required": return "Избери файл за качване.";
+    case "document_too_large": return "Файлът е твърде голям (макс. 5MB).";
+    case "document_type_unsupported": return "Неподдържан формат. Приемат се PDF, DOCX, DOC, TXT, CSV, MD.";
+    case "document_name_too_long": return "Името е твърде дълго (макс. 40 знака).";
+    case "vapi_upload_failed": return "Неуспешно качване към Vapi. Опитай пак.";
     default: return "Неуспешно записване.";
   }
 }
@@ -36,6 +42,7 @@ const TABS = [
   { key: "services", label: "Услуги" },
   { key: "hours", label: "Работно време" },
   { key: "areas", label: "Райони" },
+  { key: "documents", label: "Документи" },
   { key: "publish", label: "Преглед & публикуване" },
 ] as const;
 
@@ -63,6 +70,7 @@ export function AgentBuilder({ data }: { data: AgentComposerData | null }) {
       {tab === "services" ? <ServicesTab services={data.services} /> : null}
       {tab === "hours" ? <HoursTab hours={data.hours} /> : null}
       {tab === "areas" ? <AreasTab areas={data.areas} /> : null}
+      {tab === "documents" ? <DocumentsTab documents={data.documents} /> : null}
       {tab === "publish" ? <PublishTab preview={data.composedPreview} /> : null}
     </div>
   );
