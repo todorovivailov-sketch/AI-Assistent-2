@@ -11,8 +11,8 @@ export const DEFAULT_BASE_PROMPT =
   "Ти си изключително любезен телефонен рецепционист за фирма за услуги. Говориш кратко и вежливо на " +
   "български и записваш часове и заявки точно. Не казвай цени по телефона — предложи да изпратите оферта.";
 
-// weekday 0 = Понеделник (Mon) … 6 = Неделя (Sun), matching ISO weekday convention used in the DB
-const WEEKDAYS_BG = ["Понеделник", "Вторник", "Сряда", "Четвъртък", "Петък", "Събота", "Неделя"];
+// weekday 0 = Неделя (Sun) … 6 = Събота (Sat), matching JS getDay()/Postgres dow and the hours UI (Task 6).
+const WEEKDAYS_BG = ["Неделя", "Понеделник", "Вторник", "Сряда", "Четвъртък", "Петък", "Събота"];
 const hhmm = (t: string | null): string => (t ? t.slice(0, 5) : "");
 
 export function renderBusinessContext(input: {
@@ -31,7 +31,7 @@ export function renderBusinessContext(input: {
 
   const hours = (input.hours ?? [])
     .filter((h) => h.weekday >= 0 && h.weekday <= 6)
-    .sort((a, b) => a.weekday - b.weekday); // 0=Пон..6=Нед
+    .sort((a, b) => ((a.weekday + 6) % 7) - ((b.weekday + 6) % 7)); // display order Пон..Нед (Sun=0 -> last)
   if (hours.length) {
     const parts = hours.map((h) =>
       h.is_closed || !h.opens_at || !h.closes_at
