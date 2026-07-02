@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 
+import { anonymizeExpiredCalls } from "@/lib/gdpr/engine";
 import { sendOwnerAgendaEmail } from "@/lib/notifications/owner-email";
 import {
   agendaDedupeKey,
@@ -18,7 +19,13 @@ import { getSupabaseServiceClient } from "@/lib/supabase/service";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type OrgRow = { id: string; name: string; owner_phone: string | null; billing_email: string | null };
+type OrgRow = {
+  id: string;
+  name: string;
+  owner_phone: string | null;
+  billing_email: string | null;
+  recording_retention_days: number;
+};
 type ServiceClient = ReturnType<typeof getSupabaseServiceClient>;
 
 export async function GET(request: Request) {
@@ -43,7 +50,7 @@ async function runReminders(request: Request) {
 
   let orgQuery = supabase
     .from("organizations")
-    .select("id,name,owner_phone,billing_email")
+    .select("id,name,owner_phone,billing_email,recording_retention_days")
     .eq("status", "active");
   if (orgSlug) orgQuery = orgQuery.eq("slug", orgSlug);
 
@@ -131,6 +138,18 @@ async function processOrg(supabase: ServiceClient, org: OrgRow, window: SofiaDay
     }
   }
 
+  let retention: { affected: Record<string, number>; vapiDeleted: number; vapiErrors: number } | null = null;
+  if (!dryRun) {
+    try {
+      retention = await anonymizeExpiredCalls(supabase, {
+        id: org.id,
+        recording_retention_days: org.recording_retention_days,
+      });
+    } catch {
+      retention = null;
+    }
+  }
+
   return {
     organizationId: org.id,
     name: org.name,
@@ -138,6 +157,7 @@ async function processOrg(supabase: ServiceClient, org: OrgRow, window: SofiaDay
     smsSent,
     smsFailed,
     agenda,
+    retention,
     ...(dryRun
       ? { smsPreview, agendaPreview: due.length && to ? { to, subject: agendaEmail.subject, text: agendaEmail.text } : null }
       : {}),
