@@ -39,7 +39,9 @@ export default async function PrivacyPage() {
       <section className="mt-6 syn-card min-w-0 p-5">
         <div className="text-sm font-semibold">Дневник на действията</div>
         {actions.length === 0 ? (
-          <p className="mt-2 text-sm text-[var(--ink-soft)]">Няма записани действия.</p>
+          <div className="mt-3 rounded-lg border border-dashed border-[var(--line)] px-4 py-6 text-center text-sm text-[var(--ink-muted)]">
+            Няма записани действия. Появяват се при експорт или изтриване на данни.
+          </div>
         ) : (
           <ul className="mt-3 flex flex-col gap-2 text-sm">
             {actions.map((a) => {
