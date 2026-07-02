@@ -406,7 +406,13 @@ export function CallCenterWorkspace({ conversations }: CallCenterWorkspaceProps)
           })}
 
           {filteredConversations.length === 0 ? (
-            <div className="p-8 text-center text-sm text-[var(--ink-soft)]">Няма разговори по избраните критерии.</div>
+            <div className="flex flex-col items-center gap-2 px-4 py-12 text-center">
+              <span className="flex size-10 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--accent-strong)]">
+                <Search size={20} aria-hidden="true" />
+              </span>
+              <div className="text-sm font-medium">Няма разговори</div>
+              <div className="text-xs text-[var(--ink-muted)]">Опитайте друг филтър или търсене.</div>
+            </div>
           ) : null}
         </div>
       </aside>
