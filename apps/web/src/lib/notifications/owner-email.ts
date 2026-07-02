@@ -64,3 +64,42 @@ export async function sendOwnerLeadEmail(input: {
     return { sent: false };
   }
 }
+
+export async function sendOwnerAgendaEmail(input: {
+  to: string | null;
+  subject: string;
+  text: string;
+  html: string;
+}): Promise<{ sent: boolean }> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const to = input.to ?? process.env.OWNER_NOTIFICATION_EMAIL ?? null;
+
+  if (!apiKey || !to) {
+    console.warn("Owner agenda email skipped: missing RESEND_API_KEY or recipient");
+    return { sent: false };
+  }
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: process.env.OWNER_NOTIFICATION_FROM ?? "AI Receptionist <onboarding@resend.dev>",
+        to,
+        subject: input.subject,
+        text: input.text,
+        html: input.html,
+      }),
+    });
+
+    if (!res.ok) {
+      console.error("Owner agenda email failed", res.status, await res.text());
+      return { sent: false };
+    }
+
+    return { sent: true };
+  } catch (error) {
+    console.error("Owner agenda email threw", error);
+    return { sent: false };
+  }
+}
