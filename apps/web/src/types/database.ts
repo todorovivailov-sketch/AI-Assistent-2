@@ -28,6 +28,8 @@ export type Database = {
           owner_phone: string | null;
           billing_email: string | null;
           notes: string | null;
+          missed_call_sms_enabled: boolean;
+          missed_call_sms_template: string | null;
           created_at: string;
           updated_at: string;
         },
@@ -42,6 +44,8 @@ export type Database = {
           owner_phone?: string | null;
           billing_email?: string | null;
           notes?: string | null;
+          missed_call_sms_enabled?: boolean;
+          missed_call_sms_template?: string | null;
           created_at?: string;
           updated_at?: string;
         }
@@ -245,6 +249,7 @@ export type Database = {
           direction: string;
           status: string;
           disposition: string | null;
+          ended_reason: string | null;
           started_at: string | null;
           ended_at: string | null;
           duration_seconds: number | null;
@@ -268,6 +273,7 @@ export type Database = {
           direction?: string;
           status?: string;
           disposition?: string | null;
+          ended_reason?: string | null;
           started_at?: string | null;
           ended_at?: string | null;
           duration_seconds?: number | null;
