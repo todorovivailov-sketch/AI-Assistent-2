@@ -106,9 +106,9 @@ All take plain data and a `now: Date`, so they're deterministic and unit-tested 
 
 Mirrors `owner-email.ts`: graceful no-op when unconfigured, isolated driver.
 
-- `isSmsConfigured()` → all of `ZADARMA_API_KEY`, `ZADARMA_API_SECRET`, `ZADARMA_SMS_SENDER` present.
+- `isSmsConfigured()` → `ZADARMA_API_KEY` + `ZADARMA_API_SECRET` present (`ZADARMA_SMS_SENDER` is **optional**).
 - `sendSms({ to, text })` → `{ sent: boolean; skipped?: boolean; error?: string }`. If not configured → `{ sent:false, skipped:true }`.
-- **Zadarma driver** (proven this session against `/v1/info/balance/`): signed `POST /v1/sms/send/` with form params `number` (normalized international, digits only), `message` (text), `caller_id` (`ZADARMA_SMS_SENDER`). Signature: `sign = base64( hmacSha1Hex( method + sortedParamString + md5(sortedParamString), secret ) )`, header `Authorization: {ZADARMA_API_KEY}:{sign}`. Response `{ status: 'success' | 'error', message? }`.
+- **Zadarma driver** (signing byte-verified vs the official PHP lib; a live send succeeded 2026-07-01): signed `POST /v1/sms/send/` with form params `number` (normalized international, digits only), `message` (text), and `caller_id` **only when `ZADARMA_SMS_SENDER` contains a letter** (a registered alphanumeric Sender ID). A Zadarma virtual number is rejected as a sender (`Invalid SenderID` — confirmed live), so by default we omit `caller_id` and Zadarma uses the account's default sender (~€0.15/part, 1 part for a short Cyrillic reminder). Signature: `sign = base64( hmacSha1Hex( method + sortedParamString + md5(sortedParamString), secret ) )`, header `Authorization: {ZADARMA_API_KEY}:{sign}`, where `sortedParamString = http_build_query(ksort(params), RFC1738)` and `params` includes `format=json`. Response `{ status: 'success' | 'error', message? }`.
 - **Phone normalization** `normalizeMsisdn(phone)` → strip spaces/`()-`; `+359…`/`00359…` → `359…`; local `0XXXXXXXXX` → `359XXXXXXXXX` (BG default). The plan first checks for an existing normalizer in `lib/vapi/payload.ts` and reuses it if present.
 
 ## Owner agenda email — `lib/notifications/owner-email.ts` (extended)
@@ -141,14 +141,14 @@ Add alongside the existing sync cron (result: 2 crons — within Hobby's limit):
 ## Environment variables
 
 **New (Vercel + `.env.local`):**
-- `ZADARMA_API_KEY`, `ZADARMA_API_SECRET`, `ZADARMA_SMS_SENDER`
+- `ZADARMA_API_KEY`, `ZADARMA_API_SECRET` (required). `ZADARMA_SMS_SENDER` is **optional** — leave unset to use Zadarma's default sender; set it only to a registered alphanumeric Sender ID (a virtual number is rejected as sender).
 
 **Reused (already set):** `CRON_SECRET`, `RESEND_API_KEY`, `OWNER_NOTIFICATION_EMAIL`, `OWNER_NOTIFICATION_FROM`.
 
 ## Prerequisites (user, outside code)
 
 1. **Rotate** the Zadarma API key/secret (they were shared via screenshot) → set the new values in Vercel env + `.env.local`.
-2. **Set the SMS sender** → `ZADARMA_SMS_SENDER`. **Free path (default): use your Zadarma phone number** (e.g. `35924372749`) — no registration, no fee; works as long as that number supports outgoing SMS (verify in the Zadarma panel or with one test send). Optional branded path (later): an alphanumeric Sender ID with the company name costs €20 + a company certificate + up to ~15 business days approval — **not needed to launch**.
+2. **SMS sender** → **leave `ZADARMA_SMS_SENDER` unset.** Verified live (2026-07-01): a Zadarma virtual number is rejected as a sender (`Invalid SenderID`), but omitting the sender delivers via Zadarma's account default sender (~€0.15/part, Cyrillic OK). Optional branded path (later): a registered alphanumeric Sender ID (company name) costs €20 + a company certificate + ~15 business days — **not needed to launch**; when obtained, set `ZADARMA_SMS_SENDER` to it.
 3. Apply migration `007` via the Supabase SQL editor.
 
 ## Security

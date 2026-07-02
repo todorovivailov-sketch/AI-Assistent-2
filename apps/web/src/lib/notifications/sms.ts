@@ -4,9 +4,7 @@ const ZADARMA_API = "https://api.zadarma.com";
 const SMS_METHOD = "/v1/sms/send/";
 
 export function isSmsConfigured(): boolean {
-  return Boolean(
-    process.env.ZADARMA_API_KEY && process.env.ZADARMA_API_SECRET && process.env.ZADARMA_SMS_SENDER
-  );
+  return Boolean(process.env.ZADARMA_API_KEY && process.env.ZADARMA_API_SECRET);
 }
 
 // Byte-compatible with PHP urlencode() / http_build_query(..., PHP_QUERY_RFC1738).
@@ -53,14 +51,20 @@ export async function sendSms(input: {
   }
   const key = process.env.ZADARMA_API_KEY as string;
   const secret = process.env.ZADARMA_API_SECRET as string;
-  const sender = process.env.ZADARMA_SMS_SENDER as string;
+  const sender = process.env.ZADARMA_SMS_SENDER?.trim();
 
+  // caller_id must be a REGISTERED alphanumeric Sender ID. A Zadarma virtual
+  // number is NOT a valid SMS sender ("Invalid SenderID"), so we only pass
+  // caller_id when it contains a letter; otherwise Zadarma uses the account
+  // default sender (verified working, ~€0.15/part).
   const params: Record<string, string> = {
     number: normalizeMsisdn(input.to),
     message: input.text,
-    caller_id: sender,
     format: "json",
   };
+  if (sender && /[A-Za-z]/.test(sender)) {
+    params.caller_id = sender;
+  }
   const paramsString = buildParamsString(params);
   const authHeader = zadarmaAuthHeader(SMS_METHOD, paramsString, key, secret);
 
