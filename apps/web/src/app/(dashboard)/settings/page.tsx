@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_MISSED_CALL_TEMPLATE } from "@/lib/notifications/missed-call";
 
 import { MissedCallForm } from "./missed-call-form";
+import { RetentionForm } from "./retention-form";
 
 const settings = [
   {
@@ -36,15 +37,17 @@ export default async function SettingsPage() {
   const org = await getActiveOrganization();
   let missedEnabled = false;
   let missedTemplate = "";
+  let retentionDays = 90;
   if (org) {
     const supabase = await createClient();
     const { data } = await supabase
       .from("organizations")
-      .select("missed_call_sms_enabled, missed_call_sms_template")
+      .select("missed_call_sms_enabled, missed_call_sms_template, recording_retention_days")
       .eq("id", org.id)
       .maybeSingle();
     missedEnabled = data?.missed_call_sms_enabled ?? false;
     missedTemplate = data?.missed_call_sms_template ?? "";
+    retentionDays = data?.recording_retention_days ?? 90;
   }
 
   return (
@@ -75,6 +78,7 @@ export default async function SettingsPage() {
           template={missedTemplate}
           placeholder={DEFAULT_MISSED_CALL_TEMPLATE}
         />
+        <RetentionForm days={retentionDays} />
       </section>
     </>
   );
