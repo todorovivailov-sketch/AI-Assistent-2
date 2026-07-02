@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Ban, CalendarPlus, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { Ban, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 
 interface CalendarToolbarProps {
   previousWeek: string;
@@ -111,15 +111,6 @@ export function CalendarToolbar({ previousWeek, nextWeek }: CalendarToolbarProps
       >
         <Ban size={16} className="text-red-600" aria-hidden="true" />
         <span>Блокирай време</span>
-      </button>
-
-      <button
-        type="button"
-        className="inline-flex h-9 items-center gap-2 rounded-lg bg-[var(--accent)] px-3 text-sm font-semibold text-[var(--accent-ink)] shadow-[var(--shadow-accent)] transition hover:brightness-95"
-        title="Нов час"
-      >
-        <CalendarPlus size={16} aria-hidden="true" />
-        <span>Нов час</span>
       </button>
 
       {isModalOpen ? (

@@ -1,4 +1,4 @@
-import { Clock, Lock, MapPin, Phone } from "lucide-react";
+import { CalendarClock, Clock, Lock, MapPin, Phone } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -68,7 +68,7 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
             <div className="flex items-center gap-2 text-xs text-[var(--ink-soft)]">
               <span className="inline-flex size-2 rounded-full bg-blue-500" />
               Заявени
-              <span className="ml-2 inline-flex size-2 rounded-full bg-[var(--accent-strong)]" />
+              <span className="ml-2 inline-flex size-2 rounded-full bg-green-500" />
               Потвърдени
             </div>
           </div>
@@ -128,7 +128,13 @@ export default async function AppointmentsPage({ searchParams }: AppointmentsPag
               />
             ))}
             {scheduled.length === 0 ? (
-              <div className="px-4 py-8 text-sm text-[var(--ink-soft)]">Няма записани часове за тази седмица.</div>
+              <div className="flex flex-col items-center gap-2 px-4 py-12 text-center">
+                <span className="flex size-10 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--accent-strong)]">
+                  <CalendarClock size={20} aria-hidden="true" />
+                </span>
+                <div className="text-sm font-medium">Няма записани часове</div>
+                <div className="text-xs text-[var(--ink-muted)]">За тази седмица няма нищо.</div>
+              </div>
             ) : null}
           </div>
 
