@@ -13,6 +13,9 @@ import {
   type OrganizationResolution,
 } from "@/lib/vapi/payload";
 import { sendOwnerLeadEmail } from "@/lib/notifications/owner-email";
+import { sendSms } from "@/lib/notifications/sms";
+import { sofiaDayWindow } from "@/lib/notifications/reminders";
+import { classifyMissedCall, buildMissedCallSms, missDedupeKey } from "@/lib/notifications/missed-call";
 
 export const runtime = "nodejs";
 
@@ -124,6 +127,12 @@ export async function POST(request: Request) {
     }
   }
 
+  try {
+    await maybeSendMissedCallRecovery(supabase, resolution.organizationId, callInsert);
+  } catch (error) {
+    console.error("Missed-call recovery failed", error);
+  }
+
   return NextResponse.json({ ok: true, stored: "call", callId: call.id });
 }
 
@@ -222,4 +231,68 @@ function constantTimeEqual(left: string, right: string): boolean {
   const leftHash = createHash("sha256").update(left).digest();
   const rightHash = createHash("sha256").update(right).digest();
   return timingSafeEqual(leftHash, rightHash);
+}
+
+async function maybeSendMissedCallRecovery(
+  supabase: ReturnType<typeof getSupabaseServiceClient>,
+  organizationId: string,
+  callInsert: NonNullable<ReturnType<typeof buildCallInsert>>
+): Promise<void> {
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("name, missed_call_sms_enabled, missed_call_sms_template")
+    .eq("id", organizationId)
+    .maybeSingle();
+  if (!org || !org.missed_call_sms_enabled) return;
+
+  const sd = (callInsert.structured_data ?? {}) as unknown as Record<string, unknown>;
+  const s = (v: unknown) => (typeof v === "string" && v.trim() !== "" ? v.trim() : null);
+  const capturedIntent = Boolean(
+    s(sd.name) || s(sd.service) || s(sd.serviceType) || s(sd.service_type) ||
+    s(sd.city) || s(sd.town) || sd.appointment_confirmed === true || sd.appointmentConfirmed === true
+  );
+
+  const verdict = classifyMissedCall({
+    callerNumber: callInsert.caller_number ?? null,
+    endedReason: callInsert.ended_reason ?? null,
+    durationSeconds: callInsert.duration_seconds ?? null,
+    disposition: callInsert.disposition ?? null,
+    capturedIntent,
+  });
+  if (!verdict.isMiss) return;
+
+  const to = callInsert.caller_number;
+  if (!to) return; // narrow for TS; classifier already guaranteed a mobile
+
+  const sofiaDate = sofiaDayWindow(new Date(), 0).isoDate; // today, Europe/Sofia
+  const dedupeKey = missDedupeKey(to, sofiaDate);
+
+  // Claim-then-send: insert wins the race; a duplicate returns no rows -> skip.
+  const { data: claimed } = await supabase
+    .from("notification_log")
+    .upsert(
+      {
+        organization_id: organizationId,
+        channel: "sms",
+        kind: "missed_call_recovery",
+        appointment_id: null,
+        dedupe_key: dedupeKey,
+        destination: to,
+        status: "sent",
+        sent_at: new Date().toISOString(),
+      },
+      { onConflict: "organization_id,dedupe_key", ignoreDuplicates: true }
+    )
+    .select("id");
+  if (!claimed || claimed.length === 0) return; // already sent to this caller today
+
+  const text = buildMissedCallSms(org.missed_call_sms_template, { business: org.name });
+  const result = await sendSms({ to, text });
+  if (!result.sent) {
+    await supabase
+      .from("notification_log")
+      .update({ status: "failed", error: result.error ?? "unknown", sent_at: null })
+      .eq("organization_id", organizationId)
+      .eq("dedupe_key", dedupeKey);
+  }
 }
