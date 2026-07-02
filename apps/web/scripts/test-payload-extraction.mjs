@@ -9,7 +9,7 @@ const compiled = ts.transpileModule(readFileSync(sourcePath, "utf8"), {
   compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022, strict: false },
 });
 const moduleUrl = `data:text/javascript;base64,${Buffer.from(compiled.outputText).toString("base64")}`;
-const { buildLeadInsert, inferDisposition } = await import(moduleUrl);
+const { buildLeadInsert, inferDisposition, buildCallInsert, getVapiMessage } = await import(moduleUrl);
 
 function callInsert(structured) {
   return {
@@ -37,5 +37,12 @@ assert.equal(inferDisposition({ disposition: "appointment" }), "appointment",
   "disposition=appointment must yield 'appointment'");
 assert.equal(inferDisposition({ name: "Иван", phone: "+359888111222" }), "lead",
   "lead data with no booking signal stays 'lead'");
+
+// --- Phase 7: ended_reason is extracted from message.endedReason ---
+const eocMessage = getVapiMessage({
+  message: { type: "end-of-call-report", endedReason: "silence-timed-out", call: { id: "call-er-1" } },
+});
+const eocInsert = buildCallInsert(eocMessage, { organizationId: "org-1", phoneNumberId: null, assistantId: null });
+assert.equal(eocInsert.ended_reason, "silence-timed-out", "ended_reason must be extracted from message.endedReason");
 
 console.log("payload extraction checks passed");

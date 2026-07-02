@@ -117,6 +117,10 @@ export function buildCallInsert(
     direction: normalizeDirection(readString(message.call.type)),
     status: message.type === "end-of-call-report" ? "completed" : normalizeStatus(readString(message.call.status)),
     disposition: inferDisposition(structuredData),
+    ended_reason:
+      readString(webhookMessage.endedReason) ??
+      readString(message.call.endedReason) ??
+      null,
     started_at: startedAt,
     ended_at: endedAt,
     duration_seconds: getDurationSeconds(message, startedAt, endedAt),
