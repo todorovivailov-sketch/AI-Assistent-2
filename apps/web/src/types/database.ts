@@ -30,6 +30,7 @@ export type Database = {
           notes: string | null;
           missed_call_sms_enabled: boolean;
           missed_call_sms_template: string | null;
+          recording_retention_days: number;
           created_at: string;
           updated_at: string;
         },
@@ -46,6 +47,7 @@ export type Database = {
           notes?: string | null;
           missed_call_sms_enabled?: boolean;
           missed_call_sms_template?: string | null;
+          recording_retention_days?: number;
           created_at?: string;
           updated_at?: string;
         }
@@ -250,6 +252,7 @@ export type Database = {
           status: string;
           disposition: string | null;
           ended_reason: string | null;
+          anonymized_at: string | null;
           started_at: string | null;
           ended_at: string | null;
           duration_seconds: number | null;
@@ -274,6 +277,7 @@ export type Database = {
           status?: string;
           disposition?: string | null;
           ended_reason?: string | null;
+          anonymized_at?: string | null;
           started_at?: string | null;
           ended_at?: string | null;
           duration_seconds?: number | null;
@@ -445,6 +449,30 @@ export type Database = {
           status?: string;
           error?: string | null;
           sent_at?: string | null;
+          created_at?: string;
+        }
+      >;
+      gdpr_actions: PublicTable<
+        {
+          id: string;
+          organization_id: string;
+          action: string;
+          subject_phone: string | null;
+          performed_by: string | null;
+          affected: Json;
+          vapi_deleted: number;
+          vapi_errors: number;
+          created_at: string;
+        },
+        {
+          id?: string;
+          organization_id: string;
+          action: string;
+          subject_phone?: string | null;
+          performed_by?: string | null;
+          affected?: Json;
+          vapi_deleted?: number;
+          vapi_errors?: number;
           created_at?: string;
         }
       >;
