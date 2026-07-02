@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   LogOut,
   PhoneCall,
-  Plus,
   Search,
   Settings,
   ShieldCheck,
@@ -36,23 +35,11 @@ const navItems = [
   { href: "/privacy", label: "Лични данни", icon: ShieldCheck },
 ];
 
-const routeMeta: Record<string, { eyebrow: string; title: string; sub: string }> = {
-  "/": { eyebrow: "Работа", title: "Днес", sub: "оперативен изглед" },
-  "/inbox": { eyebrow: "Оперативна опашка", title: "Задачи", sub: "преглед и последващи действия" },
-  "/appointments": { eyebrow: "Седмичен изглед", title: "Календар", sub: "Europe/Sofia" },
-  "/customers": { eyebrow: "Клиентска база", title: "Клиенти", sub: "контакти от разговори и часове" },
-  "/leads": { eyebrow: "CRM", title: "Запитвания", sub: "входящи запитвания и pipeline" },
-  "/conversations": { eyebrow: "Журнал на обажданията", title: "Разговори", sub: "качество, записи и SMS" },
-  "/assistant": { eyebrow: "AI конфигурация", title: "Асистент", sub: "модел, глас и инструменти" },
-  "/reports": { eyebrow: "Управителски изглед", title: "Отчети", sub: "последни 14 дни" },
-  "/settings": { eyebrow: "Контрол", title: "Настройки", sub: "интеграции и достъп" },
-  "/privacy": { eyebrow: "GDPR", title: "Лични данни", sub: "износ и изтриване по заявка" },
-};
-
 export function AppShell({ children, userEmail }: { children: ReactNode; userEmail: string | null }) {
   const pathname = usePathname();
   const [activeCall, setActiveCall] = useState<{ id: string; phone: string } | null>(null);
-  const currentMeta = routeMeta[pathname] ?? routeMeta["/"];
+  const activeNav = navItems.find((item) => isActivePath(pathname, item.href));
+  const ActiveIcon = activeNav?.icon;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -65,7 +52,7 @@ export function AppShell({ children, userEmail }: { children: ReactNode; userEma
     <div className="min-h-dvh bg-[var(--background)] text-[var(--foreground)]">
       <aside className="fixed inset-y-0 left-0 hidden w-[252px] flex-col border-r border-[var(--line)] bg-[var(--surface)] lg:flex">
         <div className="flex items-center gap-3 px-5 pb-5 pt-[22px]">
-          <span className="flex size-[38px] items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--accent-ink)] shadow-[0_4px_14px_-3px_rgba(74,222,128,.55)]">
+          <span className="flex size-[38px] items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-accent-sm)]">
             <Zap size={19} strokeWidth={2.4} aria-hidden="true" />
           </span>
           <div className="min-w-0">
@@ -130,13 +117,14 @@ export function AppShell({ children, userEmail }: { children: ReactNode; userEma
 
       <div className="lg:pl-[252px]">
         <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[color-mix(in_srgb,var(--background)_86%,transparent)] px-4 backdrop-blur-xl md:px-8">
-          <div className="flex h-[68px] items-center justify-between gap-4">
-            <div className="min-w-0">
-              <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
-                {currentMeta.eyebrow}
-              </div>
-              <div className="mt-0.5 truncate text-[19px] font-semibold leading-none tracking-normal">{currentMeta.title}</div>
-              <div className="mt-1 truncate font-mono text-[11.5px] font-medium text-[var(--ink-muted)]">{currentMeta.sub}</div>
+          <div className="flex h-14 items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-2">
+              {ActiveIcon ? (
+                <ActiveIcon size={16} className="shrink-0 text-[var(--ink-muted)]" aria-hidden="true" />
+              ) : null}
+              <span className="truncate text-[13.5px] font-medium text-[var(--ink-soft)]">
+                {activeNav?.label ?? "AI Receptionist"}
+              </span>
             </div>
 
             <div className="flex min-w-0 items-center gap-2 md:gap-3">
@@ -161,26 +149,19 @@ export function AppShell({ children, userEmail }: { children: ReactNode; userEma
 
               <button
                 type="button"
-                className="hidden size-10 items-center justify-center rounded-lg border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-soft)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] md:inline-flex"
+                className="hidden size-9 items-center justify-center rounded-lg border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-soft)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] md:inline-flex"
                 aria-label="Търсене"
               >
                 <Search size={17} aria-hidden="true" />
               </button>
               <button
                 type="button"
-                className="relative hidden size-10 items-center justify-center rounded-lg border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-soft)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] md:inline-flex"
+                className="relative hidden size-9 items-center justify-center rounded-lg border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-soft)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] md:inline-flex"
                 aria-label="Известия"
               >
                 <Bell size={17} aria-hidden="true" />
                 <span className="absolute right-2.5 top-2.5 size-1.5 rounded-full bg-[var(--accent)]" />
               </button>
-              <Link
-                href="/appointments"
-                className="inline-flex h-10 items-center gap-2 rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-ink)] shadow-[0_4px_14px_-4px_rgba(74,222,128,.6)] transition hover:brightness-95"
-              >
-                <Plus size={15} strokeWidth={2.5} aria-hidden="true" />
-                <span className="hidden sm:inline">Нов час</span>
-              </Link>
             </div>
           </div>
         </header>

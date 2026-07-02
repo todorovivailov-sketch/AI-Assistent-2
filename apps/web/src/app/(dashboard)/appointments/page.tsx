@@ -207,7 +207,7 @@ function AppointmentBlock({
         isBlocked
           ? "border-red-200 bg-red-50/80 text-red-950 bg-stripes dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-100"
           : appointment.status === "confirmed"
-            ? "border-green-200 bg-[var(--surface-soft)] text-green-950 dark:border-green-900/50 dark:text-green-100"
+            ? "border-green-200 bg-green-50 text-green-950 dark:border-green-900/50 dark:text-green-100"
             : "border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900/50 dark:bg-blue-950/25 dark:text-blue-100"
       } ${selected ? "ring-2 ring-[var(--accent-strong)] ring-offset-2 ring-offset-[var(--surface)]" : ""}`}
       style={{

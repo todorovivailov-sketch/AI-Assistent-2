@@ -115,7 +115,7 @@ export function CalendarToolbar({ previousWeek, nextWeek }: CalendarToolbarProps
 
       <button
         type="button"
-        className="inline-flex h-9 items-center gap-2 rounded-lg bg-[var(--accent)] px-3 text-sm font-semibold text-[var(--accent-ink)] shadow-[0_4px_14px_-4px_rgba(74,222,128,.6)] transition hover:brightness-95"
+        className="inline-flex h-9 items-center gap-2 rounded-lg bg-[var(--accent)] px-3 text-sm font-semibold text-[var(--accent-ink)] shadow-[var(--shadow-accent)] transition hover:brightness-95"
         title="Нов час"
       >
         <CalendarPlus size={16} aria-hidden="true" />

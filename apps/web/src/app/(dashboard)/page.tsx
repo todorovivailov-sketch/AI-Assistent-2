@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AlertTriangle, CalendarCheck, CheckCircle2, PhoneCall } from "lucide-react";
+import { AlertTriangle, CalendarCheck, CheckCircle2, ChevronRight, PhoneCall } from "lucide-react";
 import Link from "next/link";
 
 import { DashboardTimeline } from "@/components/dashboard-timeline";
@@ -19,6 +19,8 @@ const funnelLabels: Record<string, string> = {
 
 export default async function CommandCenterPage() {
   const data = await getCommandCenterData();
+  const funnelStages = Object.entries(data.funnel);
+  const funnelTop = Math.max(1, ...funnelStages.map(([, value]) => Number(value) || 0));
 
   return (
     <>
@@ -28,7 +30,7 @@ export default async function CommandCenterPage() {
         actions={
           <Link
             href="/appointments"
-            className="inline-flex h-9 items-center rounded-lg bg-[var(--accent)] px-3 text-sm font-semibold text-[var(--accent-ink)] shadow-[0_4px_14px_-4px_rgba(74,222,128,.6)] transition hover:brightness-95"
+            className="inline-flex h-9 items-center rounded-lg bg-[var(--accent)] px-3 text-sm font-semibold text-[var(--accent-ink)] shadow-[var(--shadow-accent)] transition hover:brightness-95"
           >
             Нов час
           </Link>
@@ -82,7 +84,7 @@ export default async function CommandCenterPage() {
               <Link
                 key={item.id}
                 href={item.sourceHref}
-                className="grid gap-2 px-4 py-4 text-sm transition hover:bg-[var(--surface-muted)] md:grid-cols-[1fr_auto]"
+                className="group grid gap-2 px-4 py-4 text-sm transition hover:bg-[var(--surface-muted)] md:grid-cols-[1fr_auto] md:items-center"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -92,11 +94,24 @@ export default async function CommandCenterPage() {
                   <div className="mt-1 truncate text-[var(--ink-soft)]">{item.detail}</div>
                   <div className="mt-2 font-mono text-xs text-[var(--ink-muted)]">{item.phone}</div>
                 </div>
-                <StatusBadge value={item.priority === "high" ? "urgent" : item.priority} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge value={item.priority === "high" ? "urgent" : item.priority} />
+                  <ChevronRight
+                    size={16}
+                    aria-hidden="true"
+                    className="hidden shrink-0 text-[var(--ink-muted)] transition-transform group-hover:translate-x-0.5 md:block"
+                  />
+                </div>
               </Link>
             ))}
             {data.inboxItems.length === 0 ? (
-              <div className="px-4 py-8 text-sm text-[var(--ink-soft)]">Няма задачи за преглед.</div>
+              <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+                <span className="flex size-9 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--accent-strong)]">
+                  <CheckCircle2 size={18} aria-hidden="true" />
+                </span>
+                <div className="text-sm font-medium">Няма задачи за преглед</div>
+                <div className="text-xs text-[var(--ink-muted)]">Всичко е обработено.</div>
+              </div>
             ) : null}
           </div>
         </SectionPanel>
@@ -118,13 +133,27 @@ export default async function CommandCenterPage() {
 
       <section className="grid min-w-0 gap-5 xl:grid-cols-2">
         <SectionPanel title="Booking funnel" eyebrow="Reports preview">
-          <div className="grid grid-cols-2 gap-2 p-4 text-sm sm:grid-cols-4">
-            {Object.entries(data.funnel).map(([key, value]) => (
-              <div key={key} className="rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] p-3">
-                <div className="font-mono text-2xl font-semibold tabular-nums">{value}</div>
-                <div className="mt-1 text-xs text-[var(--ink-muted)]">{funnelLabels[key] ?? key}</div>
-              </div>
-            ))}
+          <div className="space-y-3.5 p-4">
+            {funnelStages.map(([key, value], index) => {
+              const count = Number(value) || 0;
+              const pct = Math.round((count / funnelTop) * 100);
+              return (
+                <div key={key}>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-sm font-medium">{funnelLabels[key] ?? key}</span>
+                    <span className="font-mono text-sm font-semibold tabular-nums">
+                      {count}
+                      {index > 0 ? (
+                        <span className="ml-1.5 text-xs font-normal text-[var(--ink-muted)]">{pct}%</span>
+                      ) : null}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[var(--surface-muted)]">
+                    <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </SectionPanel>
 
@@ -187,7 +216,7 @@ function DashboardMetric({
           <span
             key={`${label}-${index}`}
             className={`flex-1 rounded-sm ${
-              index === bars.length - 1 ? "bg-[var(--accent)]" : "bg-green-100 dark:bg-green-950/60"
+              index === bars.length - 1 ? "bg-[var(--accent)]" : "bg-[color-mix(in_srgb,var(--accent)_16%,var(--surface))]"
             }`}
             style={{ height: `${Math.min(Math.max(height, 10), 100)}%` }}
           />

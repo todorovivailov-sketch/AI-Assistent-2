@@ -1,23 +1,30 @@
 @import "tailwindcss";
 
+/* Force light theme app-wide; the dark palette below is preserved but only
+   applies via an explicit .dark class on <html> — it never auto-activates. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
+  color-scheme: light;
   --background: #fdfdfd;
   --foreground: #111827;
   --surface: #ffffff;
   --surface-muted: #f3f4f6;
-  --surface-soft: #f0fdf4;
+  --surface-soft: #eef2ff;
   --line: #e5e7eb;
   --line-strong: #d1d5db;
   --ink-soft: #4b5563;
   --ink-muted: #9ca3af;
-  --accent: #4ade80;
-  --accent-strong: #16a34a;
-  --accent-ink: #052e16;
+  --accent: #4f46e5;
+  --accent-strong: #4338ca;
+  --accent-ink: #ffffff;
   --warning: #d97706;
   --danger: #dc2626;
   --info: #2563eb;
   --shadow-card: 0 1px 2px rgba(17, 24, 39, 0.05), 0 16px 32px -22px rgba(17, 24, 39, 0.18);
   --shadow-card-hover: 0 2px 4px rgba(17, 24, 39, 0.05), 0 22px 44px -20px rgba(17, 24, 39, 0.22);
+  --shadow-accent: 0 4px 14px -4px color-mix(in srgb, var(--accent) 55%, transparent);
+  --shadow-accent-sm: 0 4px 14px -3px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 @theme inline {
@@ -28,26 +35,26 @@
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f1411;
-    --foreground: #f9fafb;
-    --surface: #151b18;
-    --surface-muted: #1f2622;
-    --surface-soft: #102416;
-    --line: #27312c;
-    --line-strong: #3c4942;
-    --ink-soft: #d1d5db;
-    --ink-muted: #9ca3af;
-    --accent: #4ade80;
-    --accent-strong: #86efac;
-    --accent-ink: #052e16;
-    --warning: #f59e0b;
-    --danger: #f87171;
-    --info: #60a5fa;
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.26), 0 18px 38px -26px rgba(0, 0, 0, 0.7);
-    --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.28), 0 24px 48px -24px rgba(0, 0, 0, 0.76);
-  }
+/* Dormant dark palette — applies only when a .dark class is set on <html>.
+   No auto/OS switching (see @custom-variant above). Hue-matched to indigo. */
+.dark {
+  --background: #0f1411;
+  --foreground: #f9fafb;
+  --surface: #151b18;
+  --surface-muted: #1f2622;
+  --surface-soft: #1e1b3a;
+  --line: #27312c;
+  --line-strong: #3c4942;
+  --ink-soft: #d1d5db;
+  --ink-muted: #9ca3af;
+  --accent: #818cf8;
+  --accent-strong: #a5b4fc;
+  --accent-ink: #1e1b4b;
+  --warning: #f59e0b;
+  --danger: #f87171;
+  --info: #60a5fa;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.26), 0 18px 38px -26px rgba(0, 0, 0, 0.7);
+  --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.28), 0 24px 48px -24px rgba(0, 0, 0, 0.76);
 }
 
 * {
@@ -75,7 +82,7 @@ textarea {
 }
 
 ::selection {
-  background: rgba(74, 222, 128, 0.32);
+  background: rgba(79, 70, 229, 0.20);
 }
 
 .syn-card {
@@ -150,18 +157,6 @@ textarea {
     #e5e7eb 10px,
     #e5e7eb 20px
   );
-}
-
-@media (prefers-color-scheme: dark) {
-  .bg-stripes {
-    background-image: repeating-linear-gradient(
-      45deg,
-      transparent,
-      transparent 10px,
-      #1f2937 10px,
-      #1f2937 20px
-    );
-  }
 }
 
 .dark .bg-stripes {

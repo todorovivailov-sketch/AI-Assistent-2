@@ -39,7 +39,7 @@ export function NewAppointmentButton() {
           setError(null);
           setOpen(true);
         }}
-        className="inline-flex h-10 items-center gap-2 rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-ink)] shadow-[0_4px_14px_-4px_rgba(74,222,128,.6)] transition hover:brightness-95"
+        className="inline-flex h-10 items-center gap-2 rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-ink)] shadow-[var(--shadow-accent)] transition hover:brightness-95"
       >
         <CalendarPlus size={15} strokeWidth={2.5} aria-hidden="true" />
         Нов час

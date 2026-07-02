@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Loader2, Phone } from "lucide-react";
+import { ArrowRight, CalendarClock, Loader2, Phone } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -48,7 +48,15 @@ export function DashboardTimeline({ appointments }: DashboardTimelineProps) {
   };
 
   if (!appointments || appointments.length === 0) {
-    return <div className="px-4 py-8 text-center text-sm text-[var(--ink-soft)]">Няма предстоящи часове.</div>;
+    return (
+      <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+        <span className="flex size-9 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--accent-strong)]">
+          <CalendarClock size={18} aria-hidden="true" />
+        </span>
+        <div className="text-sm font-medium">Няма предстоящи часове</div>
+        <div className="text-xs text-[var(--ink-muted)]">Новите часове ще се появят тук.</div>
+      </div>
+    );
   }
 
   return (
