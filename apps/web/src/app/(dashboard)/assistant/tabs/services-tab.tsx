@@ -37,7 +37,11 @@ export function ServicesTab({ services }: { services: ServiceRow[] }) {
     <div className="flex flex-col gap-4">
       <p className="text-xs text-[var(--ink-muted)]">Цените се пазят за твоя справка и <strong>не се казват по телефона</strong> (отключва се с документи в следваща фаза).</p>
       <div className="divide-y divide-[var(--line)]">
-        {services.length === 0 ? <p className="py-3 text-sm text-[var(--ink-soft)]">Няма добавени услуги.</p> : null}
+        {services.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-[var(--line)] px-4 py-6 text-center text-sm text-[var(--ink-muted)]">
+            Няма добавени услуги. Добави първата по-долу.
+          </div>
+        ) : null}
         {services.map((s) => (
           <div key={s.id} className="flex items-center justify-between gap-3 py-2 text-sm">
             <div>

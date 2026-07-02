@@ -47,7 +47,11 @@ export function DocumentsTab({ documents }: { documents: DocumentRow[] }) {
         Документите се <strong>публикуват автоматично</strong> при качване и триене.
       </p>
       <div className="divide-y divide-[var(--line)]">
-        {documents.length === 0 ? <p className="py-3 text-sm text-[var(--ink-soft)]">Няма качени документи.</p> : null}
+        {documents.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-[var(--line)] px-4 py-6 text-center text-sm text-[var(--ink-muted)]">
+            Няма качени документи. Качи първия по-долу.
+          </div>
+        ) : null}
         {documents.map((d) => (
           <div key={d.id} className="flex items-center justify-between gap-3 py-2 text-sm">
             <div>

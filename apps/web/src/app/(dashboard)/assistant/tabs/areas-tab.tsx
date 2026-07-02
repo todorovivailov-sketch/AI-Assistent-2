@@ -36,7 +36,11 @@ export function AreasTab({ areas }: { areas: AreaRow[] }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap gap-2">
-        {areas.length === 0 ? <p className="text-sm text-[var(--ink-soft)]">Няма добавени райони.</p> : null}
+        {areas.length === 0 ? (
+          <div className="w-full rounded-lg border border-dashed border-[var(--line)] px-4 py-6 text-center text-sm text-[var(--ink-muted)]">
+            Няма добавени райони. Добави първия по-долу.
+          </div>
+        ) : null}
         {areas.map((a) => (
           <span key={a.id} className="inline-flex items-center gap-2 rounded-lg border border-[var(--line)] px-3 py-1.5 text-sm">
             {a.city}{a.region ? ` (${a.region})` : ""}
