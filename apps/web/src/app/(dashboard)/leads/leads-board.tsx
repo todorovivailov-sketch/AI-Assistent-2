@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, StickyNote, X } from "lucide-react";
+import { ClipboardList, Plus, StickyNote, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
 
@@ -134,8 +134,14 @@ export function LeadsBoard({ leads }: { leads: DashboardLeadListItem[] }) {
           </DataRow>
         ))}
         {leads.length === 0 ? (
-          <div className="px-4 py-8 text-sm text-[var(--ink-soft)]">
-            Още няма запитвания. Те се появяват автоматично след всяко обаждане, или добави ръчно.
+          <div className="flex flex-col items-center gap-2 px-4 py-14 text-center">
+            <span className="flex size-10 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--accent-strong)]">
+              <ClipboardList size={20} aria-hidden="true" />
+            </span>
+            <div className="text-sm font-medium">Още няма запитвания</div>
+            <div className="text-xs text-[var(--ink-muted)]">
+              Появяват се автоматично след обаждане — или добави ръчно.
+            </div>
           </div>
         ) : null}
       </DataTable>

@@ -1,3 +1,4 @@
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 import { DataRow, DataTable } from "@/components/data-table";
@@ -29,13 +30,27 @@ export default async function InboxPage() {
             <div className="font-mono text-[var(--ink-soft)]">
               {item.appointmentTime ? formatDateTime(item.appointmentTime) : "-"}
             </div>
-            <Link href={item.sourceHref} className="text-sm font-semibold text-[var(--accent-strong)]">
+            <Link
+              href={item.sourceHref}
+              className="group inline-flex items-center gap-1 text-sm font-semibold text-[var(--accent-strong)] transition hover:brightness-90"
+            >
               Отвори
+              <ArrowRight
+                size={13}
+                aria-hidden="true"
+                className="transition-transform group-hover:translate-x-0.5"
+              />
             </Link>
           </DataRow>
         ))}
         {items.length === 0 ? (
-          <div className="px-4 py-8 text-sm text-[var(--ink-soft)]">Няма отворени задачи.</div>
+          <div className="flex flex-col items-center gap-2 px-4 py-14 text-center">
+            <span className="flex size-10 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--accent-strong)]">
+              <CheckCircle2 size={20} aria-hidden="true" />
+            </span>
+            <div className="text-sm font-medium">Няма отворени задачи</div>
+            <div className="text-xs text-[var(--ink-muted)]">Всичко е обработено.</div>
+          </div>
         ) : null}
       </DataTable>
     </>
