@@ -5,8 +5,10 @@ import { StatusBadge } from "@/components/status-badge";
 import { getActiveOrganization } from "@/lib/auth/organization";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_MISSED_CALL_TEMPLATE } from "@/lib/notifications/missed-call";
+import { DEFAULT_CONFIRMATION_TEMPLATE } from "@/lib/notifications/appointment-confirmation";
 
 import { MissedCallForm } from "./missed-call-form";
+import { ConfirmationForm } from "./confirmation-form";
 import { RetentionForm } from "./retention-form";
 
 const settings = [
@@ -37,16 +39,22 @@ export default async function SettingsPage() {
   const org = await getActiveOrganization();
   let missedEnabled = false;
   let missedTemplate = "";
+  let confirmEnabled = false;
+  let confirmTemplate = "";
   let retentionDays = 90;
   if (org) {
     const supabase = await createClient();
     const { data } = await supabase
       .from("organizations")
-      .select("missed_call_sms_enabled, missed_call_sms_template, recording_retention_days")
+      .select(
+        "missed_call_sms_enabled, missed_call_sms_template, appointment_confirmation_sms_enabled, appointment_confirmation_sms_template, recording_retention_days"
+      )
       .eq("id", org.id)
       .maybeSingle();
     missedEnabled = data?.missed_call_sms_enabled ?? false;
     missedTemplate = data?.missed_call_sms_template ?? "";
+    confirmEnabled = data?.appointment_confirmation_sms_enabled ?? false;
+    confirmTemplate = data?.appointment_confirmation_sms_template ?? "";
     retentionDays = data?.recording_retention_days ?? 90;
   }
 
@@ -77,6 +85,11 @@ export default async function SettingsPage() {
           enabled={missedEnabled}
           template={missedTemplate}
           placeholder={DEFAULT_MISSED_CALL_TEMPLATE}
+        />
+        <ConfirmationForm
+          enabled={confirmEnabled}
+          template={confirmTemplate}
+          placeholder={DEFAULT_CONFIRMATION_TEMPLATE}
         />
         <RetentionForm days={retentionDays} />
       </section>
