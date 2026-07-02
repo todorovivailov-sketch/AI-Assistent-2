@@ -13,6 +13,7 @@ import {
   Plus,
   Search,
   Settings,
+  ShieldCheck,
   Users,
   Zap,
 } from "lucide-react";
@@ -32,6 +33,7 @@ const navItems = [
   { href: "/assistant", label: "Асистент", icon: Bot },
   { href: "/reports", label: "Отчети", icon: ChartNoAxesCombined },
   { href: "/settings", label: "Настройки", icon: Settings },
+  { href: "/privacy", label: "Лични данни", icon: ShieldCheck },
 ];
 
 const routeMeta: Record<string, { eyebrow: string; title: string; sub: string }> = {
@@ -44,6 +46,7 @@ const routeMeta: Record<string, { eyebrow: string; title: string; sub: string }>
   "/assistant": { eyebrow: "AI конфигурация", title: "Асистент", sub: "модел, глас и инструменти" },
   "/reports": { eyebrow: "Управителски изглед", title: "Отчети", sub: "последни 14 дни" },
   "/settings": { eyebrow: "Контрол", title: "Настройки", sub: "интеграции и достъп" },
+  "/privacy": { eyebrow: "GDPR", title: "Лични данни", sub: "износ и изтриване по заявка" },
 };
 
 export function AppShell({ children, userEmail }: { children: ReactNode; userEmail: string | null }) {

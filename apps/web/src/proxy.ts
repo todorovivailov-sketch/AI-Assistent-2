@@ -47,6 +47,7 @@ export const config = {
     "/inbox/:path*",
     "/leads/:path*",
     "/orders/:path*",
+    "/privacy/:path*",
     "/reports/:path*",
     "/settings/:path*",
   ],
