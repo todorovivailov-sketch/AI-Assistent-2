@@ -14,7 +14,8 @@ import {
 } from "@/lib/vapi/payload";
 import { sendOwnerLeadEmail } from "@/lib/notifications/owner-email";
 import { sendSms } from "@/lib/notifications/sms";
-import { sofiaDayWindow } from "@/lib/notifications/reminders";
+import { sofiaDayWindow, formatSofiaTime, sofiaDateLabel } from "@/lib/notifications/reminders";
+import { buildConfirmationSms, confirmDedupeKey } from "@/lib/notifications/appointment-confirmation";
 import { classifyMissedCall, buildMissedCallSms, missDedupeKey } from "@/lib/notifications/missed-call";
 
 export const runtime = "nodejs";
@@ -131,6 +132,12 @@ export async function POST(request: Request) {
     await maybeSendMissedCallRecovery(supabase, resolution.organizationId, callInsert);
   } catch (error) {
     console.error("Missed-call recovery failed", error);
+  }
+
+  try {
+    await maybeSendAppointmentConfirmation(supabase, resolution.organizationId, callInsert);
+  } catch (error) {
+    console.error("Appointment confirmation failed", error);
   }
 
   return NextResponse.json({ ok: true, stored: "call", callId: call.id });
@@ -294,5 +301,79 @@ async function maybeSendMissedCallRecovery(
       .update({ status: "failed", error: result.error ?? "unknown", sent_at: null })
       .eq("organization_id", organizationId)
       .eq("dedupe_key", dedupeKey);
+  }
+}
+
+async function maybeSendAppointmentConfirmation(
+  supabase: ReturnType<typeof getSupabaseServiceClient>,
+  organizationId: string,
+  callInsert: NonNullable<ReturnType<typeof buildCallInsert>>
+): Promise<void> {
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("name, owner_phone, appointment_confirmation_sms_enabled, appointment_confirmation_sms_template")
+    .eq("id", organizationId)
+    .maybeSingle();
+  if (!org || !org.appointment_confirmation_sms_enabled) return;
+
+  const rawId = callInsert.vapi_call_id;
+  if (!rawId) return;
+
+  // Appointments are booked mid-call by calendar-tools with vapi_call_id from
+  // getExternalEventId() -> "tool-calls:<id>"; calls.vapi_call_id is the raw <id>.
+  // Match both encodings so we find whatever this call booked.
+  const { data: appts } = await supabase
+    .from("appointments")
+    .select("id, starts_at, service_type, customer_phone")
+    .eq("organization_id", organizationId)
+    .in("vapi_call_id", [rawId, `tool-calls:${rawId}`])
+    .in("status", ["requested", "confirmed"])
+    .gt("starts_at", new Date().toISOString());
+  if (!appts || appts.length === 0) return;
+
+  for (const appt of appts) {
+    if (!appt.starts_at) continue;
+    const to = (appt.customer_phone && appt.customer_phone.trim()) || callInsert.caller_number;
+    if (!to) continue;
+
+    const dedupeKey = confirmDedupeKey(appt.id);
+
+    // Claim-then-send: insert wins the race; a duplicate returns no rows -> skip.
+    const { data: claimed } = await supabase
+      .from("notification_log")
+      .upsert(
+        {
+          organization_id: organizationId,
+          channel: "sms",
+          kind: "appointment_confirmation",
+          appointment_id: appt.id,
+          dedupe_key: dedupeKey,
+          destination: to,
+          status: "sent",
+          sent_at: new Date().toISOString(),
+        },
+        { onConflict: "organization_id,dedupe_key", ignoreDuplicates: true }
+      )
+      .select("id");
+    if (!claimed || claimed.length === 0) continue; // already confirmed
+
+    const text = buildConfirmationSms(
+      {
+        service: appt.service_type,
+        date: sofiaDateLabel(appt.starts_at),
+        time: formatSofiaTime(appt.starts_at),
+        business: org.name,
+        phone: org.owner_phone,
+      },
+      org.appointment_confirmation_sms_template
+    );
+    const result = await sendSms({ to, text });
+    if (!result.sent) {
+      await supabase
+        .from("notification_log")
+        .update({ status: "failed", error: result.error ?? "unknown", sent_at: null })
+        .eq("organization_id", organizationId)
+        .eq("dedupe_key", dedupeKey);
+    }
   }
 }
