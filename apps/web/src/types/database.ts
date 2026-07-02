@@ -414,6 +414,34 @@ export type Database = {
           received_at?: string;
         }
       >;
+      notification_log: PublicTable<
+        {
+          id: string;
+          organization_id: string;
+          channel: string;
+          kind: string;
+          appointment_id: string | null;
+          dedupe_key: string;
+          destination: string;
+          status: string;
+          error: string | null;
+          sent_at: string | null;
+          created_at: string;
+        },
+        {
+          id?: string;
+          organization_id: string;
+          channel: string;
+          kind: string;
+          appointment_id?: string | null;
+          dedupe_key: string;
+          destination: string;
+          status?: string;
+          error?: string | null;
+          sent_at?: string | null;
+          created_at?: string;
+        }
+      >;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
