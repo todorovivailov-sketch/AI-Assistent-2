@@ -1,8 +1,6 @@
 {
   "crons": [
-    {
-      "path": "/api/calendar/google/sync",
-      "schedule": "0 3 * * *"
-    }
+    { "path": "/api/calendar/google/sync", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/reminders", "schedule": "0 16 * * *" }
   ]
 }
